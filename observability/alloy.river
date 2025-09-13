@@ -1,0 +1,42 @@
+loki.source.file "app" {
+  targets = [
+    { "__path__" = "/var/log/los/*.log" }
+  ]
+  forward_to = [loki.process.app.receiver]
+}
+
+loki.process "app" {
+  stage.json {
+    expressions = {
+      level   = "level",
+      logger  = "logger_name",
+      message = "message",
+      ts = "[\"@timestamp\"]"
+    }
+  }
+
+  stage.regex {
+    expression = ".*prompt_len=(?P<prompt_len>\\d+)\\s+req_tokens=(?P<req_tokens>\\d+)\\s+resp_tokens=(?P<resp_tokens>\\d+)\\s+cache_hit=(?P<cache_hit>\\w+)\\s+latency_ms=(?P<latency_ms>\\d+)"
+  }
+
+  stage.labels {
+    values = {
+      level       = "",
+      logger      = "",
+      prompt_len  = "",
+      req_tokens  = "",
+      resp_tokens = "",
+      cache_hit   = "",
+      latency_ms  = "",
+      job         = "los-app"
+    }
+  }
+
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100"
+  }
+}

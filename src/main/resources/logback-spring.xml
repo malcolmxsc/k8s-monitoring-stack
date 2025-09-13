@@ -1,0 +1,29 @@
+<configuration>
+  <!-- Console JSON logs (kept, good for local dev) -->
+  <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+    </encoder>
+  </appender>
+
+  <!-- File JSON logs (Promtail will tail ./logs/app.log) -->
+  <appender name="JSON_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <!-- Where the *current* log file lives -->
+    <file>logs/app.log</file>
+
+    <!-- JSON formatting -->
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+    </encoder>
+
+    <!-- Daily rotation: logs/app-YYYY-MM-DD.log, keep 7 days -->
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>logs/app-%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>7</maxHistory>
+    </rollingPolicy>
+  </appender>
+
+  <!-- Root logger sends to BOTH console and file -->
+  <root level="INFO">
+    <appender-ref ref="JSON_CONSOLE"/>
+    <appender-ref ref="JSON_FILE"/>
+  </root>
+</configuration>

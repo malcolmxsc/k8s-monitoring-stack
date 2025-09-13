@@ -1,0 +1,41 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: los-app
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: los-app
+          __path__: /var/log/los/*.log
+
+    pipeline_stages:
+      # 1) Parse top-level JSON log line (gives us .message, .level, etc.)
+      - json:
+          expressions:
+            level: level
+            logger: logger_name
+            message: message
+            ts: '@timestamp'
+
+      # 2) Extract structured fields from the message (our controller logs)
+      # Example message: "generate_ok prompt_len=12 req_tokens=2 resp_tokens=16 cache_hit=false latency_ms=410"
+      - regex:
+          expression: '.*prompt_len=(?P<prompt_len>\d+)\s+req_tokens=(?P<req_tokens>\d+)\s+resp_tokens=(?P<resp_tokens>\d+)\s+cache_hit=(?P<cache_hit>\w+)\s+latency_ms=(?P<latency_ms>\d+)'
+
+      # 3) Promote selected fields to labels (so you can filter in Grafana)
+      - labels:
+          level:
+          logger:
+          prompt_len:
+          req_tokens:
+          resp_tokens:
+          cache_hit:
+          latency_ms:
