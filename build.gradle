@@ -19,6 +19,20 @@ repositories {
 }
 
 dependencies {
+	implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+	runtimeOnly  'io.opentelemetry:opentelemetry-exporter-otlp:1.49.0'
+	runtimeOnly  'io.opentelemetry:opentelemetry-sdk-extension-autoconfigure:1.49.0'
+
+	implementation platform('io.micrometer:micrometer-bom:1.15.3') // Use the latest stable version
+	
+	implementation "io.micrometer:micrometer-tracing"
+
+  
+	
+	//Otel SDK and exporter
+	implementation 'io.opentelemetry:opentelemetry-sdk'
+
+	// Guava for utilities
 	implementation 'com.google.guava:guava:33.2.1-jre' // Use the latest version
 
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'

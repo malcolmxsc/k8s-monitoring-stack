@@ -1,7 +1,28 @@
 <configuration>
   <!-- Console JSON logs (kept, good for local dev) -->
   <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-    <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+    <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+      <providers>
+        <!-- ISO timestamp field named @timestamp -->
+        <timestamp>
+          <timeZone>UTC</timeZone>
+          <fieldName>@timestamp</fieldName>
+        </timestamp>
+
+        <!-- Core fields formatted as JSON -->
+        <pattern>
+          <pattern>
+            {
+              "level": "%level",
+              "logger_name": "%logger",
+              "thread_name": "%thread",
+              "message": "%message",
+              "traceId": "%X{traceId:-}",
+              "spanId": "%X{spanId:-}"
+            }
+          </pattern>
+        </pattern>
+      </providers>
     </encoder>
   </appender>
 
@@ -11,7 +32,28 @@
     <file>logs/app.log</file>
 
     <!-- JSON formatting -->
-    <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+    <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+      <providers>
+        <!-- ISO timestamp field named @timestamp -->
+        <timestamp>
+          <timeZone>UTC</timeZone>
+          <fieldName>@timestamp</fieldName>
+        </timestamp>
+
+        <!-- Core fields formatted as JSON -->
+        <pattern>
+          <pattern>
+            {
+              "level": "%level",
+              "logger_name": "%logger",
+              "thread_name": "%thread",
+              "message": "%message",
+              "traceId": "%X{traceId:-}",
+              "spanId": "%X{spanId:-}"
+            }
+          </pattern>
+        </pattern>
+      </providers>
     </encoder>
 
     <!-- Daily rotation: logs/app-YYYY-MM-DD.log, keep 7 days -->

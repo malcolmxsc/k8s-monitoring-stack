@@ -1,19 +1,29 @@
 package com.example.observability_sandbox;
 
-import java.util.Map;
-
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-
 public class GenerateController {
-    @PostMapping(path = "/generate", consumes = "application/json", produces = "application/json")
-    public Map<String, Object> generate(@RequestBody Map<String, Object> body) throws InterruptedException {
-        // Simulate some processing time
-        Thread.sleep(150);
-        String prompt = String.valueOf(body.getOrDefault("prompt", "hello"));
-        return Map.of("response", "You said: " + prompt, "latencyMs", 150);
-    }
+
+  private final LlmService llm;
+
+  public GenerateController(LlmService llm) {
+    this.llm = llm; // Spring injects the service bean
+  }
+
+  @PostMapping(path = "/generate", consumes = "application/json", produces = "application/json")
+  public GenerateResponse generate(@RequestBody(required = false) PromptRequest req) {
+    // If body is missing or prompt is blank, default to "hello"
+    String prompt = (req != null && req.prompt() != null && !req.prompt().isBlank())
+        ? req.prompt()
+        : "hello";
+
+    // Delegate to the service — this produces spans, tags, and metrics
+    return llm.generate(prompt);
+  }
 }
+
+// Simple request wrapper for JSON body
+record PromptRequest(String prompt) {}
