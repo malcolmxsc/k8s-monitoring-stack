@@ -23,3 +23,15 @@ services:
     depends_on:
       - prometheus
     restart: unless-stopped
+
+  tempo:
+    image: grafana/tempo:2.5.0
+    container_name: tempo
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./observability/tempo/tempo.yaml:/etc/tempo.yaml:ro
+    ports:
+      - "3200:3200"   # Tempo HTTP API for Grafana
+      - "4317:4317"   # OTLP gRPC ingest for your Spring app
+      - "4318:4318"   # OTLP HTTP ingest (needed for management.otlp.tracing.protocol=http/protobuf)
+    restart: unless-stopped
