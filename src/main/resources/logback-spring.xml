@@ -2,26 +2,18 @@
   <!-- Console JSON logs (kept, good for local dev) -->
   <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
     <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+    <includeMdcKeyName>traceId</includeMdcKeyName>
+    <includeMdcKeyName>spanId</includeMdcKeyName>
       <providers>
-        <!-- ISO timestamp field named @timestamp -->
-        <timestamp>
-          <timeZone>UTC</timeZone>
-          <fieldName>@timestamp</fieldName>
-        </timestamp>
-
-        <!-- Core fields formatted as JSON -->
-        <pattern>
-          <pattern>
-            {
-              "level": "%level",
-              "logger_name": "%logger",
-              "thread_name": "%thread",
-              "message": "%message",
-              "traceId": "%X{traceId:-}",
-              "spanId": "%X{spanId:-}"
-            }
-          </pattern>
-        </pattern>
+        <timestamp/>
+        <logLevel/>
+        <loggerName/>
+        <threadName/>
+        <mdc/>
+        <message/>
+        <provider class="net.logstash.logback.composite.GlobalCustomFieldsJsonProvider">
+          <customFields>{"service":"observability-sandbox"}</customFields>
+        </provider>
       </providers>
     </encoder>
   </appender>
@@ -29,38 +21,36 @@
   <!-- File JSON logs (Promtail will tail ./logs/app.log) -->
   <appender name="JSON_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <!-- Where the *current* log file lives -->
-    <file>logs/app.log</file>
+    <file>observability/logs/app.log</file>
+    
+    
 
     <!-- JSON formatting -->
     <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+    <includeMdcKeyName>traceId</includeMdcKeyName>
+    <includeMdcKeyName>spanId</includeMdcKeyName>
       <providers>
-        <!-- ISO timestamp field named @timestamp -->
-        <timestamp>
-          <timeZone>UTC</timeZone>
-          <fieldName>@timestamp</fieldName>
-        </timestamp>
-
-        <!-- Core fields formatted as JSON -->
-        <pattern>
-          <pattern>
-            {
-              "level": "%level",
-              "logger_name": "%logger",
-              "thread_name": "%thread",
-              "message": "%message",
-              "traceId": "%X{traceId:-}",
-              "spanId": "%X{spanId:-}"
-            }
-          </pattern>
-        </pattern>
+        <timestamp/>
+        <logLevel/>
+        <loggerName/>
+        <threadName/>
+        <mdc/>
+        <message/>
+        <provider class="net.logstash.logback.composite.GlobalCustomFieldsJsonProvider">
+          <customFields>{"service":"observability-sandbox"}</customFields>
+        </provider>
       </providers>
     </encoder>
 
     <!-- Daily rotation: logs/app-YYYY-MM-DD.log, keep 7 days -->
-    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <fileNamePattern>logs/app-%d{yyyy-MM-dd}.log</fileNamePattern>
-      <maxHistory>7</maxHistory>
-    </rollingPolicy>
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+  <!-- Daily files, split into chunks when >10MB -->
+  <fileNamePattern>observability/logs/app-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+  <maxFileSize>10MB</maxFileSize>
+  <!-- Optional: cap total disk usage across all archives -->
+  <totalSizeCap>1GB</totalSizeCap>
+  <maxHistory>7</maxHistory>
+</rollingPolicy>
   </appender>
 
   <!-- Root logger sends to BOTH console and file -->

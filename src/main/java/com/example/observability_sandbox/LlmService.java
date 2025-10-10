@@ -2,6 +2,8 @@ package com.example.observability_sandbox;
 
 import java.util.Random;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import io.micrometer.core.instrument.Counter;
@@ -13,6 +15,7 @@ import io.micrometer.tracing.Tracer;
 
 @Service
 public class LlmService {
+    private static final Logger log = LoggerFactory.getLogger(LlmService.class);
     private static final String SERVICE_TAG = "service";
     private static final String SERVICE_NAME = "los-app";
     private final Tracer tracer;
@@ -73,6 +76,8 @@ public class LlmService {
             span.tag("llm.latency.ms", String.valueOf(latency));
 
             // Simulate a response
+            log.info("generate_ok prompt_len={} req_tokens={} resp_tokens={} cache_hit={} latency_ms={}",
+                     prompt.length(), reqTokens, respTokens, false, latency);
             return new GenerateResponse("Generated response for:  " + prompt,reqTokens, respTokens, false, latency);
             } finally {
                 span.end();

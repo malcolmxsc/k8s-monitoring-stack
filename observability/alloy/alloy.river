@@ -1,0 +1,19 @@
+loki.source.file "app" {
+  targets = [
+    { "__path__" = "/var/log/los/app.log" },
+  ]
+  forward_to = [loki.process.app.receiver]
+}
+
+loki.process "app" {
+  stage.static_labels {
+    values = { job = "los-app" }
+  }
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

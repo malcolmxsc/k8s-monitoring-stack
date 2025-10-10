@@ -10,6 +10,18 @@ services:
       - '9090:9090'
     restart: unless-stopped
 
+  alloy:
+    image: grafana/alloy:latest
+    container_name: alloy
+    command: ["run", "/etc/alloy/config/config.river"]
+    volumes:
+     - ./observability/alloy/alloy.river:/etc/alloy/config/config.river:ro
+     - ./observability/logs:/var/log/los:ro
+     
+    depends_on:
+      - loki
+    restart: unless-stopped
+
   grafana:
     image: grafana/grafana-oss:latest
     container_name: grafana
@@ -23,7 +35,13 @@ services:
     depends_on:
       - prometheus
     restart: unless-stopped
-
+  loki:
+    image: grafana/loki:2.9.8
+    container_name: loki
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    ports:
+      - "3100:3100"
+    restart: unless-stopped  
   tempo:
     image: grafana/tempo:2.5.0
     container_name: tempo
