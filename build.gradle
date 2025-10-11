@@ -26,13 +26,10 @@ dependencies {
 	
   
 	
-	// Guava for utilities
-	implementation 'com.google.guava:guava:33.2.1-jre' // Use the latest version
-
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 
-	// promethus Metrics (Micrometer)
+	// Prometheus Metrics (Micrometer)
 	runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
 	// Tracing via OpenTelemetry (will wire the exporter in properties)
 	implementation "io.micrometer:micrometer-tracing-bridge-otel"

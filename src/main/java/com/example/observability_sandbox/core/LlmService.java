@@ -142,7 +142,6 @@ public class LlmService {
      */
     private void incrementErrorCounter(String model, String errorType) {
         String modelTag = model != null ? model : "unknown";
-        log.debug("Incrementing error counter: model={}, error_type={}", modelTag, errorType);
         registry.counter("llm_errors_total",
                 "model", modelTag,
                 "error_type", errorType,
