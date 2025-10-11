@@ -40,3 +40,8 @@ out/
 logs/
 observability/logs/
 *.log
+
+# Logs
+logs/
+observability/logs/
+*.log
