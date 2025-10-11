@@ -52,9 +52,10 @@ services:
     command: ["-config.file=/etc/tempo.yaml"]
     volumes:
       - ./observability/tempo/tempo.yaml:/etc/tempo.yaml:ro
+      - ./observability/tempo/data:/tmp/tempo:rw
     ports:
       - "3200:3200"   # Tempo HTTP API for Grafana
-      - "4317:4317"   # OTLP gRPC ingest for your Spring app
+      # Port 4317 only exposed internally for Alloy to forward traces
     restart: unless-stopped
 
   los-app:

@@ -41,9 +41,24 @@ logs/
 observability/logs/
 *.log
 
-# Logs
-logs/
-observability/logs/
-*.log
+# SSH Keys
 sshkey
 sshkey.pub
+
+# Temporary/Debug Documentation (keep only README.md for production)
+DASHBOARD_FIX_SUMMARY.md
+CODE_CLEANUP_SUMMARY.md
+QUICK_FIX.md
+TRACE_404_ROOT_CAUSE.md
+TEMPO_TEST_RESULTS.md
+ERROR_ANALYSIS_GUIDE.md
+DASHBOARD_VISUALIZATION_IMPROVEMENTS.md
+CLEANUP_SUMMARY.md
+TEMPO_TRACE_FIX.md
+README.old.md
+SSH_KEY_SETUP.md
+CHANGES_SINCE_LAST_COMMIT.md
+MODEL_ATTRIBUTE.md
+
+# Tempo data persistence
+observability/tempo/data/
