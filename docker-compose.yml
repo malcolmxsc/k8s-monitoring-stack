@@ -4,6 +4,7 @@ services:
     container_name: prometheus
     volumes:
       - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/prometheus/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
     ports:

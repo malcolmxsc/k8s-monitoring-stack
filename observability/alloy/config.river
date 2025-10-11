@@ -18,7 +18,39 @@ otelcol.exporter.otlp "tempo" {
   }
 }
 
-// 3. Loki write endpoint
+// 3. Read application log files
+loki.source.file "app" {
+	targets = [
+		{ __path__ = "/var/log/los/app.log" },
+	]
+	forward_to = [loki.process.app.receiver]
+}
+
+// 4. Parse JSON logs and extract fields including model
+loki.process "app" {
+	stage.json {
+		expressions = {
+			level    = "level",
+			message  = "message",
+			traceId  = "traceId",
+			spanId   = "spanId",
+			userId   = "userId",
+			region   = "region",
+			model    = "model",
+			endpoint = "endpoint",
+		}
+	}
+
+	stage.labels {
+		values = {
+			level = "",
+		}
+	}
+
+	forward_to = [loki.write.default.receiver]
+}
+
+// 5. Loki write endpoint
 loki.write "default" {
 	endpoint {
 		url = "http://loki:3100/loki/api/v1/push"

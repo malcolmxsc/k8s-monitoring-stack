@@ -23,32 +23,31 @@ public class GenerateController {
         this.tracer = tracer;
     }
     
-    @PostMapping("/generate")
+        @PostMapping("/generate")
     public ResponseEntity<GenerateResponse> generate(
-            @RequestBody Map<String, Object> body,
+            @RequestBody Map<String, String> payload,
             @RequestHeader(value = "X-User-Id", required = false) String userId,
-            @RequestHeader(value = "X-Region", required = false) String region
+            @RequestHeader(value = "X-Region", required = false) String region,
+            @RequestHeader(value = "X-Model", required = false) String model
     ) {
-        String prompt = String.valueOf(body.getOrDefault("prompt", "hello"));
+        String prompt = String.valueOf(payload.getOrDefault("prompt", "hello"));
         String endpoint = "/generate";
         String effectiveUser = (userId != null && !userId.isBlank()) ? userId : "demo-user";
         String effectiveRegion = (region != null && !region.isBlank()) ? region : "us-west-1";
+        String effectiveModel = (model != null && !model.isBlank()) ? model : "gpt-4.0";
 
-        // Put useful context into logs
         MDC.put("endpoint", endpoint);
         MDC.put("userId", effectiveUser);
         MDC.put("region", effectiveRegion);
+        MDC.put("model", effectiveModel);
 
-        // Get the CURRENT span created by Spring Boot's auto-instrumentation
         Span span = tracer.currentSpan();
-
-        // Add custom tags to the existing HTTP span
         if (span != null) {
             span.tag("endpoint", endpoint);
             span.tag("userId", effectiveUser);
             span.tag("region", effectiveRegion);
+            span.tag("model", effectiveModel);
             
-            // Ensure logs include trace identifiers
             if (span.context() != null) {
                 MDC.put("traceId", span.context().traceId());
                 MDC.put("spanId", span.context().spanId());
@@ -56,11 +55,16 @@ public class GenerateController {
         }
 
         try {
-            GenerateResponse resp = llmService.generate(prompt);
+            GenerateResponse resp = llmService.generate(prompt, effectiveModel);
             return ResponseEntity.ok(resp);
+        } catch (RuntimeException e) {
+            // Log error with context
+            org.slf4j.LoggerFactory.getLogger(GenerateController.class)
+                .error("Request failed for model={} user={} region={}: {}", 
+                       effectiveModel, effectiveUser, effectiveRegion, e.getMessage());
+            return ResponseEntity.status(500)
+                .body(new GenerateResponse("Error: " + e.getMessage(), 0, 0, false, 0));
         } finally {
-            // Clean MDC so threads don't leak context
-            // Don't call span.end() - let Spring Boot's instrumentation handle that
             MDC.clear();
         }
     }
