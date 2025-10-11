@@ -23,7 +23,7 @@ public class GenerateController {
         this.tracer = tracer;
     }
     
-        @PostMapping("/generate")
+    @PostMapping("/generate")
     public ResponseEntity<GenerateResponse> generate(
             @RequestBody Map<String, String> payload,
             @RequestHeader(value = "X-User-Id", required = false) String userId,
@@ -34,7 +34,17 @@ public class GenerateController {
         String endpoint = "/generate";
         String effectiveUser = (userId != null && !userId.isBlank()) ? userId : "demo-user";
         String effectiveRegion = (region != null && !region.isBlank()) ? region : "us-west-1";
-        String effectiveModel = (model != null && !model.isBlank()) ? model : "gpt-4.0";
+        
+        // Check model from header first, then from payload, then use default
+        String payloadModel = payload.get("model");
+        String effectiveModel;
+        if (model != null && !model.isBlank()) {
+            effectiveModel = model; // Header takes precedence
+        } else if (payloadModel != null && !payloadModel.isBlank()) {
+            effectiveModel = payloadModel; // Then payload
+        } else {
+            effectiveModel = "gpt-4.0"; // Default
+        }
 
         MDC.put("endpoint", endpoint);
         MDC.put("userId", effectiveUser);

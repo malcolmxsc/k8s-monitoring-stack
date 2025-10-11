@@ -1,74 +1,86 @@
 {
   "title": "LLM Model Reliability (Prometheus)",
-  "tags": ["llm", "errors", "prometheus", "reliability"],
+  "tags": [
+    "llm",
+    "errors",
+    "prometheus",
+    "reliability"
+  ],
   "timezone": "browser",
   "schemaVersion": 38,
   "version": 1,
   "refresh": "10s",
   "panels": [
     {
-      "title": "Model Error Rates (%)",
-      "type": "stat",
-      "gridPos": {
-        "x": 0,
-        "y": 0,
-        "w": 24,
-        "h": 6
-      },
-      "id": 1,
       "datasource": {
         "type": "prometheus",
         "uid": "PBFA97CFB590B2093"
       },
-      "targets": [
-        {
-          "expr": "sum(rate(llm_errors_total[5m])) by (model) / (sum(rate(llm_prompts_total[5m])) by (model) + sum(rate(llm_errors_total[5m])) by (model)) * 100",
-          "refId": "A",
-          "legendFormat": "{{model}}"
-        }
-      ],
       "fieldConfig": {
         "defaults": {
-          "unit": "percent",
-          "decimals": 1,
           "color": {
             "mode": "thresholds"
           },
+          "decimals": 1,
+          "mappings": [],
+          "max": 100,
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "value": null,
-                "color": "green"
+                "color": "green",
+                "value": 0
               },
               {
-                "value": 5,
-                "color": "yellow"
-              },
-              {
-                "value": 10,
-                "color": "orange"
-              },
-              {
-                "value": 15,
-                "color": "red"
+                "color": "red",
+                "value": 80
               }
             ]
           },
-          "mappings": []
-        }
+          "unit": "percent"
+        },
+        "overrides": []
       },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
       "options": {
-        "orientation": "horizontal",
-        "textMode": "value_and_name",
-        "colorMode": "background",
+        "colorMode": "value",
         "graphMode": "area",
-        "justifyMode": "center"
-      }
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.2.0",
+      "targets": [
+        {
+          "expr": "(sum(rate(llm_errors_total[15m])) by (model) / (sum(rate(llm_errors_total[15m])) by (model) + sum(rate(llm_prompts_success_total[15m])) by (model))) * 100",
+          "legendFormat": "{{model}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Model Error Rates (%)",
+      "transparent": true,
+      "type": "stat"
     },
     {
-      "title": "Total Errors by Model (5m rate)",
-      "type": "barchart",
+      "title": "Total Errors by Model (15m rate)",
+      "type": "timeseries",
       "gridPos": {
         "x": 0,
         "y": 6,
@@ -82,7 +94,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(llm_errors_total[5m])) by (model) * 300",
+          "expr": "sum(rate(llm_errors_total[15m])) by (model) * 300",
           "refId": "A",
           "legendFormat": "{{model}}"
         }
@@ -92,19 +104,70 @@
           "color": {
             "mode": "palette-classic"
           },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
           "unit": "short",
-          "decimals": 1
-        }
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
       },
       "options": {
-        "orientation": "vertical",
-        "barWidth": 0.8,
-        "showValue": "always",
         "legend": {
+          "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true,
-          "values": ["value"]
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
         }
       }
     },
@@ -135,7 +198,10 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
-          "values": ["value", "percent"]
+          "values": [
+            "value",
+            "percent"
+          ]
         }
       },
       "fieldConfig": {
@@ -147,7 +213,7 @@
       }
     },
     {
-      "title": "Error Rate Over Time by Model",
+      "title": "Errors Per Minute by Model",
       "type": "timeseries",
       "gridPos": {
         "x": 0,
@@ -178,9 +244,10 @@
             "showPoints": "never",
             "spanNulls": true
           },
-          "unit": "cpm",
+          "unit": "short",
           "decimals": 1
-        }
+        },
+        "overrides": []
       },
       "options": {
         "tooltip": {
@@ -191,7 +258,11 @@
           "displayMode": "table",
           "placement": "bottom",
           "showLegend": true,
-          "calcs": ["mean", "max", "last"]
+          "calcs": [
+            "mean",
+            "max",
+            "last"
+          ]
         }
       }
     },
@@ -211,7 +282,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(llm_prompts_total[5m])) / (sum(rate(llm_prompts_total[5m])) + sum(rate(llm_errors_total[5m]))) * 100",
+          "expr": "sum(rate(llm_prompts_success_total[15m])) / (sum(rate(llm_prompts_success_total[15m])) + sum(rate(llm_errors_total[15m]))) * 100",
           "refId": "A"
         }
       ],
@@ -251,7 +322,7 @@
       }
     },
     {
-      "title": "Total Requests (5m rate)",
+      "title": "Total Requests (15m rate)",
       "type": "stat",
       "gridPos": {
         "x": 12,
@@ -266,17 +337,17 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(llm_prompts_total[5m])) * 300 + sum(rate(llm_errors_total[5m])) * 300",
+          "expr": "sum(rate(llm_prompts_success_total[15m])) * 300 + sum(rate(llm_errors_total[15m])) * 300",
           "refId": "A",
-          "legendFormat": "Total Requests"
+          "legendFormat": "Total"
         },
         {
-          "expr": "sum(rate(llm_prompts_total[5m])) * 300",
+          "expr": "sum(rate(llm_prompts_success_total[15m])) * 300",
           "refId": "B",
           "legendFormat": "Successful"
         },
         {
-          "expr": "sum(rate(llm_errors_total[5m])) * 300",
+          "expr": "sum(rate(llm_errors_total[15m])) * 300",
           "refId": "C",
           "legendFormat": "Failed"
         }
@@ -287,20 +358,21 @@
           "decimals": 1,
           "color": {
             "mode": "palette-classic"
-          }
+          },
+          "mappings": []
         },
         "overrides": [
           {
             "matcher": {
               "id": "byName",
-              "options": "Failed"
+              "options": "Total"
             },
             "properties": [
               {
                 "id": "color",
                 "value": {
                   "mode": "fixed",
-                  "fixedColor": "red"
+                  "fixedColor": "blue"
                 }
               }
             ]
@@ -315,7 +387,22 @@
                 "id": "color",
                 "value": {
                   "mode": "fixed",
-                  "fixedColor": "green"
+                  "fixedColor": "semi-dark-green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Failed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "semi-dark-red"
                 }
               }
             ]
@@ -325,9 +412,19 @@
       "options": {
         "orientation": "horizontal",
         "textMode": "value_and_name",
-        "colorMode": "background",
+        "colorMode": "value",
         "graphMode": "none",
-        "justifyMode": "center"
+        "justifyMode": "auto",
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "text": {
+          "titleSize": 14,
+          "valueSize": 24
+        }
       }
     },
     {
@@ -367,7 +464,13 @@
     "to": "now"
   },
   "timepicker": {
-    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"]
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m"
+    ]
   },
   "templating": {
     "list": []

@@ -7,7 +7,6 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.tracing.Span;
@@ -21,7 +20,6 @@ public class LlmService {
     private static final String SERVICE_NAME = "los-app";
     private final Tracer tracer;
     private final Random random = new Random();
-    private final Counter promptsTotal;
     private final DistributionSummary reqTokensSummary;
     private final DistributionSummary respTokensSummary;
     private final MeterRegistry registry;
@@ -29,11 +27,7 @@ public class LlmService {
     public LlmService(Tracer tracer, MeterRegistry registry) {
         this.tracer = tracer;
         this.registry = registry;
-        this.promptsTotal = Counter.builder("llm_prompts_total")
-                .description("Total number of prompts processed")
-                .tag(SERVICE_TAG, SERVICE_NAME)
-                .register(registry);
-        // Note: errorsTotal is NOT pre-registered to allow dynamic tags (model, error_type)
+        // Note: promptsTotal and errorsTotal are NOT pre-registered to allow dynamic tags (model, error_type)
         this.reqTokensSummary = DistributionSummary.builder("llm_request_tokens")
                 .description("Number of tokens in LLM requests")
                 .baseUnit("tokens")
@@ -98,7 +92,15 @@ public class LlmService {
             span.tag("cache.hit", "false");
             span.tag("error", "false");
 
-            promptsTotal.increment();
+            // Increment success counter with model tag
+            String modelTag = effectiveModel != null ? effectiveModel : "unknown";
+            
+            // Successful prompts by model (for dashboard)
+            registry.counter("llm_prompts_success_total",
+                    "model", modelTag,
+                    SERVICE_TAG, SERVICE_NAME)
+                    .increment();
+            
             reqTokensSummary.record(reqTokens);
             respTokensSummary.record(respTokens);
 

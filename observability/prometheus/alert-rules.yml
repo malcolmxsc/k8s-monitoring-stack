@@ -87,7 +87,7 @@ groups:
           severity: info
         annotations:
           summary: "Unusually low request rate"
-          description: "Request rate is {{ $value | humanize }} req/s. This might indicate a problem."
+          description: "Request rate is {{ $value | humanize }} req/s (threshold: 0.01). Low traffic may indicate upstream service issues or reduced demand."
 
   - name: llm_service_alerts
     interval: 30s
@@ -100,7 +100,7 @@ groups:
           severity: warning
         annotations:
           summary: "High LLM request token usage"
-          description: "LLM request tokens: {{ $value }}. This might indicate inefficient prompts."
+          description: "LLM request token count is {{ $value }} (threshold: 1000). High token usage may indicate inefficient prompts or context management."
 
       # LLM response token anomaly
       - alert: HighLLMResponseTokens
@@ -110,7 +110,7 @@ groups:
           severity: info
         annotations:
           summary: "High LLM response token usage"
-          description: "LLM response tokens: {{ $value }}."
+          description: "LLM response token count is {{ $value }} (threshold: 500). Monitor for cost and performance implications."
 
       # Low LLM throughput
       - alert: LowLLMThroughput
@@ -120,7 +120,7 @@ groups:
           severity: info
         annotations:
           summary: "Low LLM processing throughput"
-          description: "LLM prompts processed: {{ $value | humanize }} prompts/s."
+          description: "LLM processing rate is {{ $value | humanize }} prompts/s (threshold: 0.01). Low throughput may indicate service issues."
 
   - name: resource_alerts
     interval: 30s
