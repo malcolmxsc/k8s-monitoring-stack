@@ -1,0 +1,25 @@
+apiVersion: 1
+datasources:
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      derivedFields:
+        - datasourceUid: 'tempo' # This UID must match the Tempo data source's UID below
+          matcherRegex: '"traceId":"(\w+)"'
+          name: traceId
+          url: '$${__value.raw}'
+
+  - name: Tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    uid: 'tempo' # Assign a unique ID that Loki can reference
+    isDefault: false
+
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    isDefault: true
+    url: http://prometheus:9090

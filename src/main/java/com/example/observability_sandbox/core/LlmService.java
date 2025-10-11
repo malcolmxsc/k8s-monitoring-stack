@@ -1,4 +1,4 @@
-package com.example.observability_sandbox;
+package com.example.observability_sandbox.core;
 
 import java.util.Random;
 
@@ -11,6 +11,7 @@ import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.tracing.Span;
 import io.micrometer.tracing.Tracer;
+import org.slf4j.MDC;
 
 
 @Service
@@ -48,40 +49,55 @@ public class LlmService {
                 .register(registry);
     }
 
-    public GenerateResponse generate(String prompt) {
-        // Start a new span for the LLM call
-        Span span = tracer.nextSpan().name("llm.generate");
-        try (Tracer.SpanInScope ws = tracer.withSpan(span.start())) {
-            // Simulate variable latency (100-500ms)
-            int latency = 100 + random.nextInt(400);
-            // Simulate token counts
-            int reqTokens = prompt.length() / 4 + 1; // Roughly 4 chars per token
-            int respTokens = 20 + random.nextInt(60); // Random response length between 5-25 tokens
+    
+    public GenerateResponse generate(String prompt){
+        // start a dedicated span for the LLM call
+        Span span = tracer.nextSpan().name("LlmService.generate").start();
+        long start = System.nanoTime();
+
+        try(Tracer.SpanInScope ws = tracer.withSpan(span)) {
+            // pull request info from the current span and put it in MDC for logging
+            String endpoint = MDC.get("endpoint");
+            String userId = MDC.get("userId");
+            String region = MDC.get("region");
+
+            // tag those attributes on this span too.
+            if(endpoint != null) span.tag("endpoint", endpoint);
+            if(userId != null) span.tag("userId", userId);
+            if(region != null) span.tag("region", region);
+
+            // -- simulate doing the LLM call --
+            int reqTokens = prompt.length() / 4 + 1;    // rough estimate
+            int respTokens = 10 + random.nextInt(90);  // random response length
+            int latency = 100 + random.nextInt(900);   // 100ms to 1s
+
             try {
                 Thread.sleep(latency);
             } catch (InterruptedException e) {
                 span.error(e);
                 Thread.currentThread().interrupt();
-                throw new RuntimeException("LLM generation interrupted", e);
+                throw new RuntimeException(e);
             }
-            // Update custom metrics
-            promptsTotal.increment();
-            reqTokensSummary.record(reqTokens);
-            respTokensSummary.record(respTokens);
 
-            // Add relevant tags to the span
-            span.tag("llm.prompt.length", String.valueOf(prompt.length()));
-            span.tag("llm.request.tokens", String.valueOf(reqTokens));
-            span.tag("llm.response.tokens", String.valueOf(respTokens));
-            span.tag("llm.latency.ms", String.valueOf(latency));
-
-            // Simulate a response
+            // Emit a single-line request log that Alloy/Loki can match
             log.info("generate_ok prompt_len={} req_tokens={} resp_tokens={} cache_hit={} latency_ms={}",
                      prompt.length(), reqTokens, respTokens, false, latency);
-            return new GenerateResponse("Generated response for:  " + prompt,reqTokens, respTokens, false, latency);
+
+                // tag useful service-level metrics
+                span.tag("req.tokens", String.valueOf(reqTokens));
+                span.tag("resp.tokens", String.valueOf(respTokens));
+                span.tag("latency.ms", String.valueOf(latency));
+                span.tag("cache.hit", "false");
+
+                // record app-level metrics
+                promptsTotal.increment();
+                reqTokensSummary.record(reqTokens);
+                respTokensSummary.record(respTokens);
+
+                // return response record.
+                return new GenerateResponse("Generated response for: " + prompt, reqTokens, respTokens, false, latency);
             } finally {
                 span.end();
-               
+            }
         }
     }
-}

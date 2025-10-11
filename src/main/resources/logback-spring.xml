@@ -21,7 +21,7 @@
   <!-- File JSON logs (Promtail will tail ./logs/app.log) -->
   <appender name="JSON_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <!-- Where the *current* log file lives -->
-    <file>observability/logs/app.log</file>
+    <file>logs/app.log</file>
     
     
 

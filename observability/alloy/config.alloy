@@ -1,0 +1,48 @@
+// 1) Tail your app logs (these are visible in the container at /var/log/los/*)
+loki.source.file "app" {
+  targets = [
+    { "__path__" = "/var/log/los/*.log" },
+  ]
+  forward_to = [loki.process.app.receiver]
+}
+
+// 2) Parse JSON, pull MDC fields, and label them
+loki.process "app" {
+  stage.json {
+    expressions = {
+      level    = "level",
+      logger   = "logger_name",
+      message  = "message",
+      ts       = "[\"@timestamp\"]",
+      traceId  = "traceId",
+      spanId   = "spanId",
+      userId   = "userId",
+      region   = "region",
+      endpoint = "endpoint",
+      service  = "service",
+    }
+  }
+
+  stage.labels {
+    values = {
+      level    = "",
+      logger   = "",
+      traceId  = "",
+      spanId   = "",
+      userId   = "",
+      region   = "",
+      endpoint = "",
+      service  = "",
+      job      = "los-app",
+    }
+  }
+
+  forward_to = [loki.write.default.receiver]
+}
+
+// 3) Send to Loki (service name on the Docker network)
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100"
+  }
+}

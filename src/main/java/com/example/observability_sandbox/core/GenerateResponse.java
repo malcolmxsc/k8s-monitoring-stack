@@ -1,4 +1,4 @@
-package com.example.observability_sandbox;
+package com.example.observability_sandbox.core;
 
 /**
  * Response payload for /generate.

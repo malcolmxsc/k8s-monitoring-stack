@@ -1,21 +1,18 @@
 server:
+  # Tempo's own HTTP status/metrics UI
   http_listen_port: 3200
 
+# Accept OTLP from your Spring app
 distributor:
+  log_received_spans:
+    enabled: true
   receivers:
     otlp:
       protocols:
         grpc:
-        http:
+          endpoint: "0.0.0.0:4317"
 
-ingester:
-  trace_idle_period: 10s
-  max_block_bytes: 1_000_000
-
-compactor:
-  compaction:
-    block_retention: 24h
-
+# Local filesystem storage for traces
 storage:
   trace:
     backend: local

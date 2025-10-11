@@ -1,6 +1,6 @@
 plugins {
 	id 'java'
-	id 'org.springframework.boot' version '3.5.5'
+	id 'org.springframework.boot' version '3.5.6'
 	id 'io.spring.dependency-management' version '1.1.7'
 }
 
@@ -20,7 +20,7 @@ repositories {
 
 dependencies {
 	
-	implementation 'io.opentelemetry:opentelemetry-exporter-otlp:1.49.0'
+	implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
 
 	implementation platform('io.micrometer:micrometer-bom:1.15.3') // Use the latest stable version
 	
