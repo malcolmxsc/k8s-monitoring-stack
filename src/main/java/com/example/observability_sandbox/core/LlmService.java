@@ -110,17 +110,21 @@ public class LlmService {
 
     /**
      * Returns error rate for each model (simulates real-world reliability differences)
+     * 
+     * NOTE: Error rates increased for demonstration purposes to populate dashboard charts.
+     * Production rates would typically be: 0.5-2% for premium models, 2-5% for standard models.
+     * These elevated rates (15-35%) are intentionally high to showcase observability features.
      */
     private double getModelErrorRate(String model) {
-        if (model == null) return 0.05;
+        if (model == null) return 0.20;  // 20% error rate for unknown models (demo purposes)
         return switch (model) {
-            case "gpt-4.0", "gpt-4o" -> 0.02;           // Most reliable
-            case "claude-3.5-sonnet", "claude-3-opus" -> 0.03;
-            case "gemini-2.0-flash" -> 0.04;
-            case "gemini-1.5-pro" -> 0.06;
-            case "gpt-3.5-turbo" -> 0.08;               // Less reliable
-            case "llama-3.3-70b" -> 0.12;               // Open source, higher error rate
-            default -> 0.05;
+            case "gpt-4.0", "gpt-4o" -> 0.15;           // 15% - Most reliable (demo: was 2%)
+            case "claude-3.5-sonnet", "claude-3-opus" -> 0.18;  // 18% (demo: was 3%)
+            case "gemini-2.0-flash" -> 0.22;            // 22% (demo: was 4%)
+            case "gemini-1.5-pro" -> 0.25;              // 25% (demo: was 6%)
+            case "gpt-3.5-turbo" -> 0.30;               // 30% - Less reliable (demo: was 8%)
+            case "llama-3.3-70b" -> 0.35;               // 35% - Open source, higher error rate (demo: was 12%)
+            default -> 0.20;                            // 20% default (demo: was 5%)
         };
     }
 
