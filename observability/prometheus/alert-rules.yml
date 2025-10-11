@@ -1,0 +1,156 @@
+groups:
+  - name: slo_alerts
+    interval: 30s
+    rules:
+      # SLO: 90% of requests should complete within 500ms
+      - alert: HighLatencyP90
+        expr: histogram_quantile(0.90, rate(http_server_requests_seconds_bucket{uri="/generate"}[5m])) > 0.5
+        for: 2m
+        labels:
+          severity: warning
+          slo: latency
+        annotations:
+          summary: "High P90 latency on /generate endpoint"
+          description: "P90 latency is {{ $value | humanizeDuration }} (threshold: 500ms). SLO breach detected."
+
+      # SLO: 95% of requests should complete within 1s
+      - alert: HighLatencyP95
+        expr: histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{uri="/generate"}[5m])) > 1.0
+        for: 2m
+        labels:
+          severity: warning
+          slo: latency
+        annotations:
+          summary: "High P95 latency on /generate endpoint"
+          description: "P95 latency is {{ $value | humanizeDuration }} (threshold: 1s). SLO breach detected."
+
+      # SLO: 99.9% availability (error rate < 0.1%)
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(http_server_requests_seconds_count{uri="/generate",status=~"5.."}[5m]))
+            /
+            sum(rate(http_server_requests_seconds_count{uri="/generate"}[5m]))
+          ) > 0.001
+        for: 2m
+        labels:
+          severity: critical
+          slo: availability
+        annotations:
+          summary: "High error rate on /generate endpoint"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 0.1%). SLO breach detected."
+
+      # Alert on 4xx errors (client errors)
+      - alert: HighClientErrorRate
+        expr: |
+          (
+            sum(rate(http_server_requests_seconds_count{uri="/generate",status=~"4.."}[5m]))
+            /
+            sum(rate(http_server_requests_seconds_count{uri="/generate"}[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          slo: availability
+        annotations:
+          summary: "High client error rate on /generate endpoint"
+          description: "Client error rate is {{ $value | humanizePercentage }} (threshold: 5%)."
+
+  - name: service_health
+    interval: 30s
+    rules:
+      # Service is down
+      - alert: ServiceDown
+        expr: up{job="spring-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service is down"
+          description: "The observability-sandbox application has been down for more than 1 minute."
+
+      # High request rate (potential DDoS or traffic spike)
+      - alert: HighRequestRate
+        expr: rate(http_server_requests_seconds_count{uri="/generate"}[1m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Unusually high request rate"
+          description: "Request rate is {{ $value | humanize }} req/s (threshold: 100 req/s)."
+
+      # Low request rate (potential issue)
+      - alert: LowRequestRate
+        expr: rate(http_server_requests_seconds_count{uri="/generate"}[5m]) < 0.01 and rate(http_server_requests_seconds_count{uri="/generate"}[5m]) > 0
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "Unusually low request rate"
+          description: "Request rate is {{ $value | humanize }} req/s. This might indicate a problem."
+
+  - name: llm_service_alerts
+    interval: 30s
+    rules:
+      # LLM token usage anomaly
+      - alert: HighLLMTokenUsage
+        expr: llm_request_tokens > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High LLM request token usage"
+          description: "LLM request tokens: {{ $value }}. This might indicate inefficient prompts."
+
+      # LLM response token anomaly
+      - alert: HighLLMResponseTokens
+        expr: llm_response_tokens > 500
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "High LLM response token usage"
+          description: "LLM response tokens: {{ $value }}."
+
+      # Low LLM throughput
+      - alert: LowLLMThroughput
+        expr: rate(llm_prompts_total[5m]) < 0.01 and rate(llm_prompts_total[5m]) > 0
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "Low LLM processing throughput"
+          description: "LLM prompts processed: {{ $value | humanize }} prompts/s."
+
+  - name: resource_alerts
+    interval: 30s
+    rules:
+      # High JVM memory usage
+      - alert: HighMemoryUsage
+        expr: (jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High JVM heap memory usage"
+          description: "JVM heap memory usage is {{ $value | humanizePercentage }} (threshold: 85%)."
+
+      # High thread count
+      - alert: HighThreadCount
+        expr: jvm_threads_live_threads > 200
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High thread count"
+          description: "JVM thread count is {{ $value }} (threshold: 200)."
+
+      # High GC time
+      - alert: HighGCTime
+        expr: rate(jvm_gc_pause_seconds_sum[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High garbage collection time"
+          description: "GC is consuming {{ $value | humanizePercentage }} of CPU time (threshold: 10%)."

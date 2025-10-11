@@ -1,103 +1,332 @@
-# 🧩 LLM Observability Sandbox (LOS)
+# Observability Sandbox
 
-A learning project to simulate observability for an AI system.  
-Built with **Java + Spring Boot**, it exposes a fake LLM `/generate` endpoint that returns mock completions and ships metrics to **Prometheus + Grafana**.
+A production-ready observability stack demonstrating distributed tracing, structured logging, metrics, and SLO-based alerting for a Spring Boot application simulating LLM API interactions.
 
-This project grows step by step:
-1. **Metrics** → Prometheus + Grafana ✅  
-2. **Logs** → JSON logs, Loki (next)  
-3. **Traces** → OpenTelemetry, Tempo  
-4. **SLOs + Alerts** → Prometheus rules + Grafana dashboards  
-5. **Kubernetes** → Deploy on kind/minikube for a “prod-like” stack  
+## 🏗️ Architecture
 
----
+```
+┌─────────────────┐
+│  Spring Boot    │
+│  Application    │──┐
+│  (Port 8080)    │  │
+└─────────────────┘  │
+                     │
+         ┌───────────┴─────────────┬──────────────┬─────────────┐
+         │                         │              │             │
+         ▼                         ▼              ▼             ▼
+  ┌────────────┐          ┌──────────────┐  ┌─────────┐  ┌─────────┐
+  │   Alloy    │          │  Prometheus  │  │  Loki   │  │  Tempo  │
+  │  (OTLP)    │          │  (Metrics)   │  │ (Logs)  │  │ (Traces)│
+  └────────────┘          └──────────────┘  └─────────┘  └─────────┘
+         │                         │              │             │
+         └───────────┬─────────────┴──────────────┴─────────────┘
+                     │
+                     ▼
+              ┌───────────┐
+              │  Grafana  │
+              │(Port 3000)│
+              └───────────┘
+```
 
-## 🚀 Features (current progress)
-- `POST /generate` → simulates an LLM completion:
-  - Adds random latency (fast if cache hit, slow otherwise)
-  - Fake token counting (input + output)
-- Custom **Micrometer metrics**:
-  - `llm_requests_total`
-  - `llm_request_tokens_total`
-  - `llm_response_tokens_total`
-  - `llm_cache_hit_ratio`
-- Prometheus scrape endpoint at `/actuator/prometheus`
-- Works with Grafana dashboards (RPS, latency, tokens/sec)
-
----
-
-## 📦 Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
-- Java 21  
-- Gradle (wrapper included)  
-- Docker Desktop (for Prometheus + Grafana stack)  
+- Java 17+
+- Docker & Docker Compose
+- Gradle (wrapper included)
 
-### Clone the repo
-```bash
-git clone git@github.com:malcolmxsc/observability-sandbox.git
-cd observability-sandbox
+### Running the Stack
+
+1. **Start the observability infrastructure:**
+   ```bash
+   docker-compose up -d
+   ```
+
+2. **Build and run the application:**
+   ```bash
+   ./gradlew bootRun
+   ```
+
+3. **Generate some traffic:**
+   ```bash
+   curl -X POST http://localhost:8080/generate \
+     -H "Content-Type: application/json" \
+     -d '{"userId":"user123","region":"us-east"}'
+   ```
+
+## 📊 Access Points
+
+| Service | URL | Credentials | Purpose |
+|---------|-----|-------------|---------|
+| **Application** | http://localhost:8080 | - | Spring Boot REST API |
+| **Grafana** | http://localhost:3000 | admin/admin | Dashboards & visualization |
+| **Prometheus** | http://localhost:9090 | - | Metrics & alerts |
+| **Loki** | http://localhost:3100 | - | Log aggregation (API) |
+| **Tempo** | http://localhost:3200 | - | Distributed tracing (API) |
+
+## 🔍 Finding Your Data
+
+### Logs (Grafana → Explore → Loki)
+
+**Example queries:**
+```logql
+# All logs from the application
+{job="los-app"}
+
+# Logs for a specific user
+{job="los-app"} |= "user123"
+
+# Logs with errors
+{job="los-app"} | json | level="ERROR"
+
+# Logs for /generate endpoint
+{job="los-app"} | json | endpoint="/generate"
+
+# High latency requests (>500ms)
+{job="los-app"} | json | latencyMs > 500
 ```
 
-### Run the app
-```bash
-./gradlew bootRun
+### Traces (Grafana → Explore → Tempo)
+
+**Example queries:**
+```
+# Search by trace ID
+<trace-id-from-logs>
+
+# Search by HTTP URL
+{ span.http.url = "/generate" }
+
+# Search by user ID
+{ resource.service.name = "observability-sandbox" && span.userId = "user123" }
+
+# Search by region
+{ span.region = "us-east" }
+
+# Find slow traces (duration > 500ms)
+{ duration > 500ms }
 ```
 
-### Test the LLM endpoint
-```bash
-curl -s -X POST http://localhost:8080/generate   -H "Content-Type: application/json"   -d '{"prompt":"Write a haiku about observability"}'
+**Finding traces from logs:**
+1. Go to Grafana → Explore → Loki
+2. Run a log query
+3. Click on any log entry
+4. Click the **Tempo** link/button next to the `traceId` field
+5. View the full distributed trace with spans
+
+### Metrics (Grafana → Explore → Prometheus)
+
+**Application metrics:**
+```promql
+# Request rate
+rate(http_server_requests_seconds_count[1m])
+
+# P95 latency
+histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[1m]))
+
+# Error rate
+rate(http_server_requests_seconds_count{status=~"5.."}[1m])
+
+# LLM token usage
+rate(llm_request_tokens_sum[1m]) / rate(llm_request_tokens_count[1m])
+
+# Memory usage
+jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}
 ```
 
-### Check metrics
+## 📈 SLO Dashboard
+
+Access the pre-configured SLO Dashboard:
+1. Open Grafana: http://localhost:3000
+2. Navigate to **Dashboards** → **Observability** → **SLO Dashboard**
+
+**Metrics tracked:**
+- **Latency**: P90 < 500ms, P95 < 1s
+- **Availability**: 99.9% (< 0.1% error rate)
+- **Request Rate**: Total, successful, failed
+- **LLM Token Usage**: Request/response tokens
+- **Resource Utilization**: Heap, threads, GC time
+
+## 🚨 Alerts
+
+View active alerts:
+- **Prometheus UI**: http://localhost:9090/alerts
+- **Grafana Dashboard**: Check the "Active Alerts" panel
+
+**Configured alerts:**
+
+| Alert | Severity | Threshold | Description |
+|-------|----------|-----------|-------------|
+| HighLatencyP90 | Warning | P90 > 500ms | SLO violation |
+| HighLatencyP95 | Critical | P95 > 1s | Critical SLO violation |
+| HighErrorRate | Critical | 5xx > 0.1% | Availability SLO violation |
+| ServiceDown | Critical | Service unreachable 1min | Service outage |
+| HighMemoryUsage | Critical | Heap > 85% | Resource exhaustion risk |
+
+See [SLO_ALERTS.md](SLO_ALERTS.md) for complete alert documentation.
+
+## 🧪 Testing & Development
+
+### Generate Load
 ```bash
-curl -s http://localhost:8080/actuator/prometheus | grep llm_
+# Quick test
+for i in {1..20}; do 
+  curl -X POST http://localhost:8080/generate \
+    -H "Content-Type: application/json" \
+    -d '{"userId":"user'$i'","region":"us-east"}' 
+  sleep 0.5
+done
+
+# Continuous load
+watch -n 1 'curl -X POST http://localhost:8080/generate \
+  -H "Content-Type: application/json" \
+  -d "{\"userId\":\"user$RANDOM\",\"region\":\"us-east\"}"'
 ```
+
+### View Application Logs
+```bash
+# Tail JSON logs
+tail -f logs/application.log | jq
+
+# Watch for errors
+tail -f logs/application.log | jq 'select(.level=="ERROR")'
+```
+
+### Check Service Health
+```bash
+# Application health
+curl http://localhost:8080/actuator/health
+
+# Prometheus targets
+curl http://localhost:9090/api/v1/targets | jq
+
+# Check if services are up
+docker-compose ps
+```
+
+## 🏗️ Project Structure
+
+```
+observability-sandbox/
+├── src/main/java/com/example/observability_sandbox/
+│   ├── GenerateController.java      # REST endpoint with tracing
+│   ├── LlmService.java              # LLM simulation with metrics
+│   └── ObservabilitySandboxApplication.java
+├── src/main/resources/
+│   ├── application.properties       # Spring Boot config
+│   └── logback-spring.xml          # Structured logging config
+├── observability/
+│   ├── alloy/
+│   │   └── config.river            # OpenTelemetry collector config
+│   ├── grafana/
+│   │   └── provisioning/
+│   │       ├── datasources/        # Loki, Tempo, Prometheus
+│   │       └── dashboards/         # SLO Dashboard
+│   ├── prometheus/
+│   │   ├── prometheus.yml          # Scrape & rule configuration
+│   │   └── alert-rules.yml         # SLO-based alert rules
+│   └── tempo/
+│       └── tempo.yaml              # Trace storage config
+├── docker-compose.yml              # Full observability stack
+└── logs/                           # Application JSON logs
+```
+
+## 🎯 Key Features
+
+### Distributed Tracing
+- **Automatic instrumentation** via Spring Boot Actuator
+- **Custom spans** for LLM service calls
+- **Context propagation** across service boundaries
+- **TraceId injection** into logs for correlation
+
+### Structured Logging
+- **JSON format** with Logstash encoder
+- **MDC context**: traceId, spanId, userId, region, endpoint
+- **Clickable trace links** in Grafana
+- **UTC timestamps** with @timestamp field
+
+### Metrics & Monitoring
+- **RED metrics**: Rate, Errors, Duration
+- **Custom metrics**: LLM token usage (request/response)
+- **Percentile histograms**: P50, P90, P95, P99
+- **JVM metrics**: Memory, threads, GC
+
+### SLO-Based Alerting
+- **Latency SLOs**: P90 < 500ms, P95 < 1s
+- **Availability SLO**: 99.9% uptime
+- **Multi-window alerts**: 2min, 5min, 10min
+- **Severity levels**: Critical, Warning, Info
+
+## � Additional Documentation
+
+- [SLO Implementation Guide](SLO_IMPLEMENTATION.md) - Complete SLO setup and testing
+- [SLO Alert Reference](SLO_ALERTS.md) - Alert rules and PromQL queries
+- [Cleanup Summary](CLEANUP_SUMMARY.md) - Code quality improvements
+
+## 🛠️ Tech Stack
+
+**Application:**
+- Spring Boot 3.5.6
+- Micrometer (metrics)
+- Micrometer Tracing (OpenTelemetry bridge)
+- Logback with Logstash encoder
+
+**Observability:**
+- Grafana 12.2.0 (visualization)
+- Prometheus 3.5.0 (metrics)
+- Loki 2.9.8 (logs)
+- Tempo 2.5.0 (traces)
+- Grafana Alloy (OpenTelemetry collector)
+
+## 🐛 Troubleshooting
+
+### No traces in Tempo
+```bash
+# Check Alloy is receiving OTLP data
+docker logs alloy
+
+# Verify app is sending traces
+curl http://localhost:8080/actuator/metrics/http.server.requests
+
+# Check Tempo ingestion
+curl http://localhost:3200/status
+```
+
+### Logs not showing in Loki
+```bash
+# Verify log files exist
+ls -la logs/
+
+# Check Alloy log collection
+docker logs alloy | grep loki
+
+# Query Loki directly
+curl -G http://localhost:3100/loki/api/v1/query \
+  --data-urlencode 'query={job="los-app"}'
+```
+
+### Metrics not in Prometheus
+```bash
+# Check Prometheus targets
+open http://localhost:9090/targets
+
+# Verify app metrics endpoint
+curl http://localhost:8080/actuator/prometheus
+
+# Check Prometheus logs
+docker logs prometheus
+```
+
+## 📝 License
+
+MIT License - See [LICENSE](LICENSE) file
+
+## 🤝 Contributing
+
+This is a learning/portfolio project. Feel free to:
+- Fork and experiment
+- Submit issues for bugs
+- Suggest improvements via PRs
 
 ---
 
-## 📊 Observability Stack
-
-Start Prometheus + Grafana with Docker Compose:
-```bash
-docker compose up -d
-```
-
-- Prometheus → [http://localhost:9090](http://localhost:9090)  
-- Grafana → [http://localhost:3000](http://localhost:3000) (admin / admin)  
-
-### Example Grafana queries
-**Request rate (RPS):**
-```promql
-sum(rate(http_server_requests_seconds_count{uri="/generate"}[1m]))
-```
-
-**p95 latency:**
-```promql
-histogram_quantile(0.95,
-  sum by (le) (rate(http_server_requests_seconds_bucket{uri="/generate"}[5m]))
-)
-```
-
-**Request tokens/sec:**
-```promql
-rate(llm_request_tokens_total[1m])
-```
-
----
-
-## 🛠 Roadmap
-- [ ] Add structured JSON logs (`logback-spring.xml`)  
-- [ ] Ship logs to **Loki**  
-- [ ] Export traces to **Tempo** via OpenTelemetry  
-- [ ] Define **SLOs** (p95 latency < 500ms, error rate < 1%)  
-- [ ] Add **error budget burn alerts** with Alertmanager  
-- [ ] Deploy on **Kubernetes (kind/minikube)**  
-
----
-
-## 📚 Learning Goals
-- Understand the **three pillars of observability**: metrics, logs, traces  
-- Practice instrumenting services with **Micrometer + OpenTelemetry**  
-- Build intuition around **SLOs, error budgets, and alerts**  
-- Get hands-on with the **Grafana ecosystem**  
+**Built with ❤️ for learning modern observability practices**  
