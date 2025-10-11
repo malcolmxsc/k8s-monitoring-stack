@@ -45,3 +45,5 @@ observability/logs/
 logs/
 observability/logs/
 *.log
+sshkey
+sshkey.pub
