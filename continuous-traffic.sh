@@ -11,7 +11,7 @@ MODELS=(
   "gemini-2.0-flash"
   "gemini-1.5-pro"
   "llama-3.3-70b"
-  "gpt-4"
+  "gpt-4.0"
 )
 
 echo "🚀 Starting continuous traffic generation..."
@@ -30,7 +30,7 @@ while true; do
     PROMPT="Generate a response for test prompt #${PROMPT_NUM}"
     
     # Make the request
-    curl -s -X POST http://localhost:8080/generate \
+    curl -s --fail --connect-timeout 2 --max-time 5 --retry 2 --retry-delay 0.5 -X POST http://localhost:8080/generate \
       -H "Content-Type: application/json" \
       -d "{\"prompt\": \"${PROMPT}\", \"model\": \"${MODEL}\"}" \
       > /dev/null
