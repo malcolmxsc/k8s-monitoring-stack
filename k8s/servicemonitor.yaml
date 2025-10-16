@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: los-app
+  namespace: observability-sandbox
+  labels:
+    release: prom
+spec:
+  selector:
+    matchLabels:
+      app: los-app
+  namespaceSelector:
+    matchNames:
+      - observability-sandbox
+  endpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: 15s
