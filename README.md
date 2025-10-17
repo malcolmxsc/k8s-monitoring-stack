@@ -28,41 +28,63 @@ A production-ready observability stack demonstrating distributed tracing, struct
               └───────────┘
 ```
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Kubernetes)
 
 ### Prerequisites
-- Java 17+
-- Docker & Docker Compose
-- Gradle (wrapper included)
+- kubectl configured for your cluster
+- Grafana/Prometheus/Loki/Tempo (provided by the manifests in `k8s/`)
+- Java 17+ and Gradle if you want to build locally (not required to run)
 
-### Running the Stack
+### Deploy
 
-1. **Start the observability infrastructure:**
-   ```bash
-   docker-compose up -d
-   ```
+1) Namespace + Secrets + Config
+```bash
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/secret-demo-credentials.yaml
+kubectl apply -f k8s/logback-configmap.yaml
+kubectl apply -f k8s/promtail-configmap.yaml
+```
 
-2. **Build and run the application:**
-   ```bash
-   ./gradlew bootRun
-   ```
+2) App + Service + Monitoring
+```bash
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+kubectl apply -f k8s/servicemonitor.yaml
+```
 
-3. **Generate some traffic:**
-   ```bash
-   curl -X POST http://localhost:8080/generate \
-     -H "Content-Type: application/json" \
-     -d '{"userId":"user123","region":"us-east"}'
-   ```
+3) Grafana provisioning (optional if you have an existing Grafana)
+```bash
+kubectl apply -f k8s/grafana-datasource-configmap.yaml
+kubectl apply -f k8s/grafana-dashboard-provider-configmap.yaml
+kubectl apply -f k8s/grafana-dashboard-llm-configmap.yaml
+kubectl rollout restart deployment/grafana -n observability-sandbox
+```
+
+### Access the app
+- The app listens on port 8080 via the `los-app` Service (LoadBalancer in the sample). Retrieve the external IP and test:
+```bash
+kubectl get svc los-app -n observability-sandbox
+curl -u demo:observability! -X POST http://<LOS_APP_LB_IP>:8080/generate \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"hello"}'
+```
+
+### Generate traffic (safe defaults)
+```bash
+BASE_URL="http://<LOS_APP_LB_IP>:8080" \
+APP_USER="demo" APP_PASSWORD="observability!" \
+./load-generator.sh --pattern steady --base-url "$BASE_URL"
+```
 
 ## 📊 Access Points
 
 | Service | URL | Credentials | Purpose |
 |---------|-----|-------------|---------|
-| **Application** | http://localhost:8080 | - | Spring Boot REST API |
-| **Grafana** | http://localhost:3000 | admin/admin | Dashboards & visualization |
-| **Prometheus** | http://localhost:9090 | - | Metrics & alerts |
-| **Loki** | http://localhost:3100 | - | Log aggregation (API) |
-| **Tempo** | http://localhost:3200 | - | Distributed tracing (API) |
+| **Application** | http://<LOS_APP_LB_IP>:8080 | Basic Auth (demo/observability!) | Spring Boot REST API |
+| **Grafana** | http://<GRAFANA_LB_IP> | your Grafana creds | Dashboards & visualization |
+| **Prometheus** | cluster service | - | Metrics & alerts |
+| **Loki** | cluster service | - | Log aggregation (API) |
+| **Tempo** | cluster service | - | Distributed tracing (API) |
 
 ## 🔍 Finding Your Data
 
@@ -108,10 +130,9 @@ A production-ready observability stack demonstrating distributed tracing, struct
 
 **Finding traces from logs:**
 1. Go to Grafana → Explore → Loki
-2. Run a log query
-3. Click on any log entry
-4. Click the **Tempo** link/button next to the `traceId` field
-5. View the full distributed trace with spans
+2. Run a log query and expand an entry
+3. Copy a `traceId` value and open Grafana → Explore → Tempo
+4. Paste the `traceId` to view the end‑to‑end trace
 
 ### Metrics (Grafana → Explore → Prometheus)
 
@@ -164,7 +185,7 @@ View active alerts:
 
 See [SLO_ALERTS.md](SLO_ALERTS.md) for complete alert documentation.
 
-## 🧪 Testing & Development
+## 🧪 Testing & Development (local, optional)
 
 ### Generate Load
 ```bash
@@ -198,6 +219,14 @@ curl http://localhost:8080/actuator/health
 
 # Prometheus targets
 curl http://localhost:9090/api/v1/targets | jq
+
+## 🔒 Security
+- App endpoints are protected with HTTP Basic (demo / observability! by default).
+- Prometheus scraping on `/actuator/prometheus` is open to the cluster.
+- Credentials are stored in the K8s Secret `los-app-demo-credentials`; rotate by editing the Secret and restarting the Deployment.
+
+## 🧹 Housekeeping
+- Ephemeral docs (internal change logs, fix summaries) are ignored via `.gitignore` to keep the repo presentation‑ready.
 
 # Check if services are up
 docker-compose ps
