@@ -19,7 +19,8 @@ data:
               - localhost
             labels:
               job: los-app
-              __path__: /var/log/pods/*/app.log
+              # use a recursive glob to match both /var/log/pods/app.log and any nested paths
+              __path__: /var/log/pods/**/app.log
         pipeline_stages: []
         relabel_configs:
           - source_labels: ['__meta_kubernetes_pod_name']
