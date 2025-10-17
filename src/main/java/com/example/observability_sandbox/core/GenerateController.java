@@ -17,6 +17,7 @@ public class GenerateController {
 
     private final LlmService llmService;
     private final Tracer tracer;
+    private static final String MODEL_KEY = "model";
 
     public GenerateController(LlmService llmService, Tracer tracer) {
         this.llmService = llmService;
@@ -36,7 +37,7 @@ public class GenerateController {
         String effectiveRegion = (region != null && !region.isBlank()) ? region : "us-west-1";
         
         // Check model from header first, then from payload, then use default
-        String payloadModel = payload.get("model");
+        String payloadModel = payload.get(MODEL_KEY);
         String effectiveModel;
         if (model != null && !model.isBlank()) {
             effectiveModel = model; // Header takes precedence
@@ -49,14 +50,14 @@ public class GenerateController {
         MDC.put("endpoint", endpoint);
         MDC.put("userId", effectiveUser);
         MDC.put("region", effectiveRegion);
-        MDC.put("model", effectiveModel);
+        MDC.put(MODEL_KEY, effectiveModel);
 
         Span span = tracer.currentSpan();
         if (span != null) {
             span.tag("endpoint", endpoint);
             span.tag("userId", effectiveUser);
             span.tag("region", effectiveRegion);
-            span.tag("model", effectiveModel);
+            span.tag(MODEL_KEY, effectiveModel);
             
             if (span.context() != null) {
                 MDC.put("traceId", span.context().traceId());

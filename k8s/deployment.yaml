@@ -12,62 +12,69 @@ spec:
     metadata:
       labels:
         app: los-app
-    spec:
-      containers:
-        - name: los-app
-          image: us-docker.pkg.dev/mythic-byway-392817/observability/los-app:0483cd3
-          ports:
-            - containerPort: 8080
-          volumeMounts:
-            - name: logs
-              mountPath: /app/logs
-            - name: logback-config
-              mountPath: /app/config/logback-spring.xml
-              subPath: logback-spring.xml
-          env:
-            - name: SPRING_LOGGING_CONFIG
-              value: /app/config/logback-spring.xml
-          resources:
-            requests:
-              cpu: "300m"
-              memory: "512Mi"
-            limits:
-              cpu: "500m"
-              memory: "1Gi"
-          livenessProbe:
-            httpGet:
-              path: /actuator/health/liveness
-              port: 8080
-            initialDelaySeconds: 30
-            periodSeconds: 10
-          readinessProbe:
-            httpGet:
-              path: /actuator/health/readiness
-              port: 8080
-            initialDelaySeconds: 30
-            periodSeconds: 10
-        - name: promtail
-          image: grafana/promtail:2.9.3
-          args:
-            - -config.file=/etc/promtail/config.yml
-          resources:
-            requests:
-              cpu: "50m"
-              memory: "64Mi"
-            limits:
-              cpu: "100m"
-              memory: "128Mi"
-          volumeMounts:
-            - name: promtail-config
-              mountPath: /etc/promtail
-            - name: logs
-              mountPath: /var/log/pods
-      volumes:
-        - name: logs
-          emptyDir: {}
-        - name: logback-config
-          configMap:
-            name: los-app-logback
-        - name: promtail-config
-          configMap:
-            name: los-app-promtail-config
+  spec:
+    automountServiceAccountToken: false
+    containers:
+      - name: los-app
+        image: us-docker.pkg.dev/mythic-byway-392817/observability/los-app:4c42aba-region-amd64
+        ports:
+          - containerPort: 8080
+        volumeMounts:
+          - name: logs
+            mountPath: /app/logs
+          - name: logback-config
+            mountPath: /app/config/logback-spring.xml
+            subPath: logback-spring.xml
+        env:
+          - name: LOGGING_CONFIG
+            value: /app/config/logback-spring.xml
+          - name: MANAGEMENT_OTLP_TRACING_ENDPOINT
+            value: http://tempo:4318/v1/traces
+        resources:
+          requests:
+            cpu: "300m"
+            memory: "512Mi"
+            ephemeral-storage: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "1Gi"
+            ephemeral-storage: "1Gi"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      - name: promtail
+        image: grafana/promtail:2.9.3
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+            ephemeral-storage: "50Mi"
+          limits:
+            cpu: "100m"
+            memory: "128Mi"
+            ephemeral-storage: "200Mi"
+            cpu: "100m"
+            memory: "128Mi"
+        volumeMounts:
+          - name: promtail-config
+            mountPath: /etc/promtail
+          - name: logs
+            mountPath: /var/log/pods
+    volumes:
+      - name: logs
+        emptyDir: {}
+      - name: logback-config
+        configMap:
+          name: los-app-logback
+      - name: promtail-config
+        configMap:
+          name: los-app-promtail-config
