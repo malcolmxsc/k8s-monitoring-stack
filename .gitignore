@@ -21,6 +21,12 @@ bin/
 .idea
 *.iws
 *.iml
+# Local/generated artifacts
+gitleaks-report.json
+observability-sandbox/
+
+# Local helper scripts (if you prefer them untracked, uncomment)
+# scripts/
 *.ipr
 out/
 !**/src/main/**/out/
