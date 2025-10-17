@@ -77,13 +77,13 @@ A production-ready observability stack demonstrating distributed tracing, struct
 {job="los-app"} |= "user123"
 
 # Logs with errors
-{job="los-app"} | json | level="ERROR"
+{job="los-app"} |= "ERROR"
 
 # Logs for /generate endpoint
-{job="los-app"} | json | endpoint="/generate"
+{job="los-app"} |= "/generate"
 
 # High latency requests (>500ms)
-{job="los-app"} | json | latencyMs > 500
+{job="los-app"} |= "latencyMs" | unwrap latencyMs > 500
 ```
 
 ### Traces (Grafana → Explore → Tempo)

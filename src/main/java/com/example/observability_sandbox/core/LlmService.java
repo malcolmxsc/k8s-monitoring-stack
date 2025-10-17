@@ -18,6 +18,7 @@ public class LlmService {
     private static final Logger log = LoggerFactory.getLogger(LlmService.class);
     private static final String SERVICE_TAG = "service";
     private static final String SERVICE_NAME = "los-app";
+    private static final String UNKNOWN_TAG = "unknown";
     private final Tracer tracer;
     private final Random random = new Random();
     private final DistributionSummary reqTokensSummary;
@@ -69,7 +70,7 @@ public class LlmService {
             } catch (InterruptedException e) {
                 span.error(e);
                 Thread.currentThread().interrupt();
-                incrementErrorCounter(effectiveModel, "interrupted");
+                incrementErrorCounter(effectiveModel, "interrupted", region);
                 throw new RuntimeException(e);
             }
 
@@ -79,7 +80,7 @@ public class LlmService {
                 span.tag("error.type", errorType);
                 log.error("generate_error model={} prompt_len={} error_type={} latency_ms={}",
                          effectiveModel, prompt.length(), errorType, latency);
-                incrementErrorCounter(effectiveModel, errorType);
+                incrementErrorCounter(effectiveModel, errorType, region);
                 throw new RuntimeException("LLM Error [" + effectiveModel + "]: " + errorType);
             }
 
@@ -91,13 +92,15 @@ public class LlmService {
             span.tag("latency.ms", String.valueOf(latency));
             span.tag("cache.hit", "false");
             span.tag("error", "false");
-
             // Increment success counter with model tag
-            String modelTag = effectiveModel != null ? effectiveModel : "unknown";
+            String modelTag = effectiveModel != null ? effectiveModel : UNKNOWN_TAG;
             
             // Successful prompts by model (for dashboard)
+            String regionTag = region != null ? region : UNKNOWN_TAG;
+
             registry.counter("llm_prompts_success_total",
                     "model", modelTag,
+                    "region", regionTag,
                     SERVICE_TAG, SERVICE_NAME)
                     .increment();
             
@@ -120,13 +123,13 @@ public class LlmService {
     private double getModelErrorRate(String model) {
         if (model == null) return 0.20;  // 20% error rate for unknown models (demo purposes)
         return switch (model) {
-            case "gpt-4.0", "gpt-4o" -> 0.15;           // 15% - Most reliable (demo: was 2%)
+            case "gpt-4.0", "gpt-4o" -> 0.2;           // 20% - Most reliable (demo: was 2%)
             case "claude-3.5-sonnet", "claude-3-opus" -> 0.18;  // 18% (demo: was 3%)
-            case "gemini-2.0-flash" -> 0.22;            // 22% (demo: was 4%)
-            case "gemini-1.5-pro" -> 0.25;              // 25% (demo: was 6%)
-            case "gpt-3.5-turbo" -> 0.30;               // 30% - Less reliable (demo: was 8%)
-            case "llama-3.3-70b" -> 0.35;               // 35% - Open source, higher error rate (demo: was 12%)
-            default -> 0.20;                            // 20% default (demo: was 5%)
+            case "gemini-2.0-flash" -> 0.25;            // 25% (demo: was 4%)
+            case "gemini-1.5-pro" -> 0.30;              // 30% (demo: was 6%)
+            case "gpt-3.5-turbo" -> 0.35;               // 35% - Less reliable (demo: was 8%)
+            case "llama-3.3-70b" -> 0.40;               // 40% - Open source, higher error rate (demo: was 12%)
+            default -> 0.25;                            // 25% default (demo: was 5%)
         };
     }
 
@@ -144,13 +147,16 @@ public class LlmService {
     }
 
     /**
+    /**
      * Records error metrics with model and error type tags
      */
-    private void incrementErrorCounter(String model, String errorType) {
-        String modelTag = model != null ? model : "unknown";
+    private void incrementErrorCounter(String model, String errorType, String region) {
+        String modelTag = model != null ? model : UNKNOWN_TAG;
+        String regionTag = region != null ? region : UNKNOWN_TAG;
         registry.counter("llm_errors_total",
                 "model", modelTag,
                 "error_type", errorType,
+                "region", regionTag,
                 SERVICE_TAG, SERVICE_NAME)
                 .increment();
     }

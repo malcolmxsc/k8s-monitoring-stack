@@ -1,26 +1,109 @@
 #!/bin/bash
 
+set -euo pipefail
+
 # Load Generator for Observability Sandbox
 # Generates realistic traffic with varied users, regions, and patterns
 
-BASE_URL="http://localhost:8080"
-COLORS=true
+DEFAULT_BASE_URL="${BASE_URL:-http://localhost:8080}"
+BASE_URL="$DEFAULT_BASE_URL"
+COLORS="${COLORS:-true}"
+HEALTH_CHECK="${HEALTH_CHECK:-true}"
+PATTERN=""
+HAS_JQ=true
 
-# Color output
-if [ "$COLORS" = true ]; then
-    GREEN='\033[0;32m'
-    YELLOW='\033[1;33m'
-    RED='\033[0;31m'
-    BLUE='\033[0;34m'
-    NC='\033[0m' # No Color
-else
-    GREEN=''
-    YELLOW=''
-    RED=''
-    BLUE=''
-    NC=''
+if ! command -v jq > /dev/null 2>&1; then
+    HAS_JQ=false
 fi
 
+configure_colors() {
+    if [[ "$COLORS" == "true" || "$COLORS" == "1" ]]; then
+        GREEN='\033[0;32m'
+        YELLOW='\033[1;33m'
+        RED='\033[0;31m'
+        BLUE='\033[0;34m'
+        NC='\033[0m' # No Color
+    else
+        GREEN=''
+        YELLOW=''
+        RED=''
+        BLUE=''
+        NC=''
+    fi
+}
+
+configure_colors
+
+usage() {
+    cat <<EOF
+Usage: $(basename "$0") [options] [pattern]
+
+Options:
+  --base-url URL          Override the target base URL (default: $BASE_URL)
+  --pattern NAME          Run a traffic pattern and exit (steady|burst|regional|session|continuous|all|test)
+  --skip-health-check     Skip the initial /actuator/health check.
+  --no-color              Disable ANSI color output.
+  --color                 Force ANSI color output.
+  -h, --help              Show this help message and exit.
+
+Environment variables:
+  BASE_URL        Default base URL when --base-url is not provided.
+  COLORS          Set to false to disable colors by default.
+  HEALTH_CHECK    Set to false to skip the health check by default.
+EOF
+}
+
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --base-url)
+                if [[ $# -lt 2 ]]; then
+                    echo -e "${RED}Error:${NC} --base-url requires a value." >&2
+                    exit 1
+                fi
+                BASE_URL="$2"
+                shift 2
+                ;;
+            --pattern)
+                if [[ $# -lt 2 ]]; then
+                    echo -e "${RED}Error:${NC} --pattern requires a value." >&2
+                    exit 1
+                fi
+                PATTERN="$2"
+                shift 2
+                ;;
+            --skip-health-check)
+                HEALTH_CHECK=false
+                shift
+                ;;
+            --health-check)
+                HEALTH_CHECK=true
+                shift
+                ;;
+            --no-color)
+                COLORS=false
+                shift
+                ;;
+            --color)
+                COLORS=true
+                shift
+                ;;
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            steady|burst|regional|session|continuous|all|test)
+                PATTERN="$1"
+                shift
+                ;;
+            *)
+                echo -e "${RED}Unknown option:${NC} $1" >&2
+                usage
+                exit 1
+                ;;
+        esac
+    done
+}
 # User pool (realistic usernames)
 USERS=(
     "alice.smith"
@@ -98,23 +181,35 @@ make_request() {
     local model=$4
     
     echo -e "${BLUE}[$(date '+%H:%M:%S')]${NC} User: ${GREEN}$user${NC} | Region: ${YELLOW}$region${NC} | Model: ${BLUE}$model${NC}"
-    
-    response=$(curl -s -w "\n%{http_code}" -X POST "$BASE_URL/generate" \
+    local response http_code body latency tokens
+
+    if ! response=$(curl -sS --connect-timeout 5 --max-time 30 -w "\n%{http_code}" \
+        -X POST "$BASE_URL/generate" \
         -H "Content-Type: application/json" \
         -H "X-User-Id: $user" \
         -H "X-Region: $region" \
         -H "X-Model: $model" \
-        -d "{\"prompt\":\"$prompt\"}")
-    
+        -d "{\"prompt\":\"$prompt\"}"); then
+        echo -e "  ${RED}✗${NC} Request failed (unable to connect)"
+        return 1
+    fi
+
     http_code=$(echo "$response" | tail -n 1)
     body=$(echo "$response" | sed '$d')
-    
-    if [ "$http_code" = "200" ]; then
-        latency=$(echo "$body" | jq -r '.latencyMs // "N/A"')
-        tokens=$(echo "$body" | jq -r '.respTokens // "N/A"')
-        echo -e "  ${GREEN}✓${NC} Status: $http_code | Latency: ${latency}ms | Tokens: $tokens"
+
+    if [[ "$http_code" == "200" ]]; then
+        if [[ "$HAS_JQ" == "true" ]]; then
+            latency=$(echo "$body" | jq -r '.latencyMs // "N/A"' 2>/dev/null || echo "N/A")
+            tokens=$(echo "$body" | jq -r '.respTokens // "N/A"' 2>/dev/null || echo "N/A")
+            echo -e "  ${GREEN}✓${NC} Status: $http_code | Latency: ${latency}ms | Tokens: $tokens"
+        else
+            echo -e "  ${GREEN}✓${NC} Status: $http_code"
+        fi
     else
         echo -e "  ${RED}✗${NC} Status: $http_code"
+        if [[ -n "$body" ]]; then
+            echo "  Response: $body"
+        fi
     fi
     echo ""
 }
@@ -230,6 +325,8 @@ show_menu() {
     echo -e "${GREEN}║   Observability Sandbox Load Generator    ║${NC}"
     echo -e "${GREEN}╔════════════════════════════════════════════╗${NC}"
     echo ""
+    echo "Target service: $BASE_URL"
+    echo ""
     echo "Select a traffic pattern:"
     echo ""
     echo "  1) Steady Traffic      - Consistent load (20 requests, 1s interval)"
@@ -270,52 +367,68 @@ run_all_patterns() {
 
 # Check if service is running
 check_service() {
-    if ! curl -s "$BASE_URL/actuator/health" > /dev/null 2>&1; then
-        echo -e "${RED}Error: Service not running at $BASE_URL${NC}"
-        echo "Please start the application first with: ./gradlew bootRun"
-        exit 1
+    if curl -sf "$BASE_URL/actuator/health" > /dev/null 2>&1; then
+        return 0
     fi
+
+    echo -e "${RED}Error:${NC} Service not reachable at $BASE_URL"
+    echo "Hint: use --base-url for a remote deployment or --skip-health-check to bypass this probe."
+    return 1
 }
 
-# Main
-main() {
-    check_service
-    
-    if [ $# -eq 0 ]; then
-        while true; do
-            show_menu
-            read -r choice
-            case $choice in
-                1) pattern_steady ;;
-                2) pattern_burst ;;
-                3) pattern_regional ;;
-                4) pattern_user_session ;;
-                5) pattern_continuous ;;
-                6) run_all_patterns ;;
-                7) quick_test ;;
-                q|Q) echo "Goodbye!"; exit 0 ;;
-                *) echo -e "${RED}Invalid option${NC}" ;;
-            esac
-            echo ""
-            echo -e "${BLUE}Press Enter to continue...${NC}"
-            read -r
-            clear
-        done
-    else
-        case $1 in
-            steady) pattern_steady ;;
-            burst) pattern_burst ;;
-            regional) pattern_regional ;;
-            session) pattern_user_session ;;
-            continuous) pattern_continuous ;;
-            all) run_all_patterns ;;
-            test) quick_test ;;
-            *) 
-                echo "Usage: $0 [steady|burst|regional|session|continuous|all|test]"
-                echo "Run without arguments for interactive menu"
-                exit 1
-                ;;
+run_pattern() {
+    case "$1" in
+        steady) pattern_steady ;;
+        burst) pattern_burst ;;
+        regional) pattern_regional ;;
+        session) pattern_user_session ;;
+        continuous) pattern_continuous ;;
+        all) run_all_patterns ;;
+        test) quick_test ;;
+        *)
+            echo -e "${RED}Unknown pattern:${NC} $1" >&2
+            usage
+            exit 1
+            ;;
+    esac
+}
+
+interactive_menu() {
+    while true; do
+        show_menu
+        read -r choice
+        case $choice in
+            1) run_pattern steady ;;
+            2) run_pattern burst ;;
+            3) run_pattern regional ;;
+            4) run_pattern session ;;
+            5) run_pattern continuous ;;
+            6) run_pattern all ;;
+            7) run_pattern test ;;
+            q|Q) echo "Goodbye!"; exit 0 ;;
+            *) echo -e "${RED}Invalid option${NC}" ;;
         esac
+        echo ""
+        echo -e "${BLUE}Press Enter to continue...${NC}"
+        read -r
+        clear
+    done
+}
+
+main() {
+    parse_args "$@"
+    configure_colors
+
+    if [[ "$HEALTH_CHECK" == "true" || "$HEALTH_CHECK" == "1" ]]; then
+        if ! check_service; then
+            exit 1
+        fi
+    fi
+
+    if [[ -n "$PATTERN" ]]; then
+        run_pattern "$PATTERN"
+    else
+        interactive_menu
     fi
 }
 

@@ -95,34 +95,34 @@ Other:   llama-3.3-70b, mistral-large
 
 **View all unique users:**
 ```logql
-{job="los-app"} | json | userId != "demo-user" | distinct userId
+{job="los-app"} |= "userId" | json | userId != "demo-user" | distinct userId
 ```
 
 **Traffic by region:**
 ```logql
 sum by (region) (
-  count_over_time({job="los-app"} | json [5m])
+  count_over_time({job="los-app"} [5m])
 )
 ```
 
 **Requests from specific user:**
 ```logql
-{job="los-app"} | json | userId="alice.smith"
+{job="los-app"} |= "userId" | json | userId="alice.smith"
 ```
 
 **Filter by model:**
 ```logql
-{job="los-app"} | json | model="claude-3.5-sonnet"
+{job="los-app"} |= "model" | json | model="claude-3.5-sonnet"
 ```
 
 **Regional latency analysis:**
 ```logql
-{job="los-app"} | json | unwrap latencyMs | quantile_over_time(0.95, [5m]) by (region)
+{job="los-app"} |= "latencyMs" | json | unwrap latencyMs | quantile_over_time(0.95, [5m]) by (region)
 ```
 
 **Model latency comparison:**
 ```logql
-{job="los-app"} | json | unwrap latencyMs | quantile_over_time(0.95, [5m]) by (model)
+{job="los-app"} |= "latencyMs" | json | unwrap latencyMs | quantile_over_time(0.95, [5m]) by (model)
 ```
 
 ### Grafana → Explore → Tempo

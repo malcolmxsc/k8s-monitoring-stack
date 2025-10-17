@@ -69,7 +69,7 @@
       "pluginVersion": "12.2.0",
       "targets": [
         {
-          "expr": "(sum(rate(llm_errors_total[15m])) by (model) / (sum(rate(llm_errors_total[15m])) by (model) + sum(rate(llm_prompts_success_total[15m])) by (model))) * 100",
+          "expr": "100 * (sum(increase(llm_errors_total[1h])) by (model)) / (sum(increase(llm_errors_total[1h])) by (model) + sum(increase(llm_prompts_success_total[1h])) by (model))",
           "legendFormat": "{{model}}",
           "refId": "A"
         }
@@ -79,7 +79,7 @@
       "type": "stat"
     },
     {
-      "title": "Total Errors by Model (15m rate)",
+      "title": "Total Errors by Model (1h rate)",
       "type": "timeseries",
       "gridPos": {
         "x": 0,
@@ -94,7 +94,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(llm_errors_total[15m])) by (model) * 300",
+          "expr": "sum(increase(llm_errors_total[1h])) by (model)",
           "refId": "A",
           "legendFormat": "{{model}}"
         }
@@ -172,7 +172,7 @@
       }
     },
     {
-      "title": "Errors by Type",
+      "title": "Errors by Type (1h total)",
       "type": "piechart",
       "gridPos": {
         "x": 12,
@@ -187,7 +187,7 @@
       },
       "targets": [
         {
-          "expr": "sum(llm_errors_total) by (error_type)",
+          "expr": "sum(increase(llm_errors_total[1h])) by (error_type)",
           "refId": "A",
           "legendFormat": "{{error_type}}"
         }
@@ -208,17 +208,62 @@
         "defaults": {
           "color": {
             "mode": "palette-classic"
-          }
+          },
+          "decimals": 0
         }
       }
     },
     {
-      "title": "Errors Per Minute by Model",
-      "type": "timeseries",
+      "title": "Errors by Region (1h total)",
+      "type": "piechart",
       "gridPos": {
         "x": 0,
         "y": 14,
-        "w": 24,
+        "w": 12,
+        "h": 8
+      },
+      "id": 8,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(llm_errors_total[1h])) by (region)",
+          "refId": "A",
+          "legendFormat": "{{region}}"
+        }
+      ],
+      "options": {
+        "pieType": "donut",
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "short",
+          "decimals": 0
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Top Errors by Model (1h)",
+      "type": "bargauge",
+      "gridPos": {
+        "x": 12,
+        "y": 14,
+        "w": 12,
         "h": 8
       },
       "id": 4,
@@ -228,42 +273,28 @@
       },
       "targets": [
         {
-          "expr": "rate(llm_errors_total[1m]) * 60",
+          "expr": "topk(8, sum(increase(llm_errors_total[1h])) by (model, error_type))",
           "refId": "A",
-          "legendFormat": "{{model}} - {{error_type}}"
+          "legendFormat": "{{model}} • {{error_type}}"
         }
       ],
       "fieldConfig": {
         "defaults": {
+          "unit": "short",
+          "decimals": 0,
           "color": {
             "mode": "palette-classic"
-          },
-          "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 15,
-            "showPoints": "never",
-            "spanNulls": true
-          },
-          "unit": "short",
-          "decimals": 1
+          }
         },
         "overrides": []
       },
       "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        },
-        "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true,
-          "calcs": [
-            "mean",
-            "max",
-            "last"
-          ]
-        }
+        "displayMode": "basic",
+        "minVizHeight": 10,
+        "minVizWidth": 10,
+        "orientation": "horizontal",
+        "showUnfilled": false,
+        "valueMode": "color"
       }
     },
     {
@@ -282,14 +313,14 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(llm_prompts_success_total[15m])) / (sum(rate(llm_prompts_success_total[15m])) + sum(rate(llm_errors_total[15m]))) * 100",
+          "expr": "sum(increase(llm_prompts_success_total[1h])) / (sum(increase(llm_prompts_success_total[1h])) + sum(increase(llm_errors_total[1h]))) * 100",
           "refId": "A"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "unit": "percent",
-          "decimals": 2,
+          "decimals": 0,
           "min": 0,
           "max": 100,
           "thresholds": {
@@ -317,12 +348,12 @@
       },
       "options": {
         "orientation": "auto",
-        "showThresholdLabels": true,
-        "showThresholdMarkers": true
+        "showThresholdLabels": false,
+        "showThresholdMarkers": false
       }
     },
     {
-      "title": "Total Requests (15m rate)",
+      "title": "Total Requests (1h rate)",
       "type": "stat",
       "gridPos": {
         "x": 12,
@@ -337,17 +368,17 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(llm_prompts_success_total[15m])) * 300 + sum(rate(llm_errors_total[15m])) * 300",
+          "expr": "sum(increase(llm_prompts_success_total[1h])) + sum(increase(llm_errors_total[1h]))",
           "refId": "A",
           "legendFormat": "Total"
         },
         {
-          "expr": "sum(rate(llm_prompts_success_total[15m])) * 300",
+          "expr": "sum(increase(llm_prompts_success_total[1h]))",
           "refId": "B",
           "legendFormat": "Successful"
         },
         {
-          "expr": "sum(rate(llm_errors_total[15m])) * 300",
+          "expr": "sum(increase(llm_errors_total[1h]))",
           "refId": "C",
           "legendFormat": "Failed"
         }
@@ -355,7 +386,7 @@
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "decimals": 1,
+          "decimals": 0,
           "color": {
             "mode": "palette-classic"
           },
@@ -441,16 +472,16 @@
         "type": "loki",
         "uid": "P8E80F9AEF21F6940"
       },
-      "targets": [
+        "targets": [
         {
-          "expr": "{job=\"los-app\"} |= \"generate_error\" | json",
+          "expr": "{job=\"los-app\"} |= \"ERROR\" | json",
           "refId": "A"
         }
       ],
       "options": {
         "showTime": true,
-        "showLabels": false,
-        "showCommonLabels": false,
+        "showLabels": true,
+        "showCommonLabels": true,
         "wrapLogMessage": true,
         "prettifyLogMessage": false,
         "enableLogDetails": true,
@@ -460,7 +491,7 @@
     }
   ],
   "time": {
-    "from": "now-15m",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {

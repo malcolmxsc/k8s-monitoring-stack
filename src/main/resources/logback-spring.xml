@@ -4,7 +4,8 @@
       <customFields>{"service":"observability-sandbox"}</customFields>
       <timeZone>UTC</timeZone>
       <fieldNames>
-        <timestamp>@timestamp</timestamp>
+        <timestamp>timestamp</timestamp>
+        <version>version</version>
       </fieldNames>
       <includeMdc>true</includeMdc>
       <includeContext>false</includeContext>
@@ -17,7 +18,8 @@
       <customFields>{"service":"observability-sandbox"}</customFields>
       <timeZone>UTC</timeZone>
       <fieldNames>
-        <timestamp>@timestamp</timestamp>
+        <timestamp>timestamp</timestamp>
+        <version>version</version>
       </fieldNames>
       <includeMdc>true</includeMdc>
       <includeContext>false</includeContext>
