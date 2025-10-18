@@ -37,12 +37,27 @@ A production-ready observability stack demonstrating distributed tracing, struct
 
 ### Deploy
 
-1) Namespace + Secrets + Config
+1) Namespace + Config
 ```bash
 kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/secret-demo-credentials.yaml
 kubectl apply -f k8s/logback-configmap.yaml
 kubectl apply -f k8s/promtail-configmap.yaml
+```
+
+Create the application Secret (choose one):
+
+- Quick one‑liner (recommended for demos):
+```bash
+kubectl create secret generic los-app-demo-credentials \
+  -n observability-sandbox \
+  --from-literal=app-user=demo \
+  --from-literal=app-password='observability!'
+```
+
+- Or from the example manifest (edit password first):
+```bash
+cp k8s/secret-demo-credentials.example.yaml k8s/secret-demo-credentials.yaml
+kubectl apply -f k8s/secret-demo-credentials.yaml
 ```
 
 2) App + Service + Monitoring
@@ -69,6 +84,30 @@ curl -u demo:observability! -X POST http://<LOS_APP_LB_IP>:8080/generate \
   -d '{"prompt":"hello"}'
 ```
 
+### Interview Quick Start (clickable)
+
+- App base URL: [http://136.115.91.255:8080](http://136.115.91.255:8080)
+- Health check: [http://136.115.91.255:8080/actuator/health](http://136.115.91.255:8080/actuator/health)
+
+Auth for app endpoints: `demo / observability!`
+
+Run a one‑shot request (ready to copy/paste):
+
+```bash
+curl -s -u demo:observability! \
+  -X POST "http://136.115.91.255:8080/generate" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"hello"}' | jq .
+```
+
+Generate safe demo traffic:
+
+```bash
+BASE_URL="http://136.115.91.255:8080" \
+APP_USER="demo" APP_PASSWORD="observability!" \
+./load-generator.sh --pattern steady --base-url "$BASE_URL" --skip-health-check
+```
+
 ### Generate traffic (safe defaults)
 ```bash
 BASE_URL="http://<LOS_APP_LB_IP>:8080" \
@@ -81,7 +120,7 @@ APP_USER="demo" APP_PASSWORD="observability!" \
 | Service | URL | Credentials | Purpose |
 |---------|-----|-------------|---------|
 | **Application** | http://<LOS_APP_LB_IP>:8080 | Basic Auth (demo/observability!) | Spring Boot REST API |
-| **Grafana** | http://<GRAFANA_LB_IP> | your Grafana creds | Dashboards & visualization |
+| **Grafana** | [http://35.223.226.27/](http://35.223.226.27/) | your Grafana creds | Dashboards & visualization |
 | **Prometheus** | cluster service | - | Metrics & alerts |
 | **Loki** | cluster service | - | Log aggregation (API) |
 | **Tempo** | cluster service | - | Distributed tracing (API) |

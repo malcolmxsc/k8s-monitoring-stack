@@ -75,3 +75,22 @@ SLO_ALERTS.md
 
 # Tempo data persistence
 observability/tempo/data/
+
+# Kubernetes secrets (keep example file only)
+k8s/secret-demo-credentials.yaml
+k8s/secret-demo-credentials.yaml
+
+# Nested copy of the repo (redundant)
+/observability-sandbox/
+
+# Generic internal change/readme notes (keep main README.md and Load Generator docs)
+*SUMMARY.md
+*FIX*.md
+*RESULTS*.md
+*STATUS*.md
+*SESSION*.md
+*TRACE*.md
+*HEALTH_CHECK*.md
+*INTEGRATION*.md
+!README.md
+!LOAD_GENERATOR.md
