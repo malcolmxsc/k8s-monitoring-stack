@@ -193,36 +193,48 @@ rate(llm_request_tokens_sum[1m]) / rate(llm_request_tokens_count[1m])
 jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}
 ```
 
-## 📈 SLO Dashboard
+## 📈 Dashboard Overview
 
-Access the pre-configured SLO Dashboard:
-1. Open Grafana: http://localhost:3000
-2. Navigate to **Dashboards** → **Observability** → **SLO Dashboard**
+This project ships a single “LLM Model Reliability (Prometheus)” dashboard. Panels and data sources:
 
-**Metrics tracked:**
-- **Latency**: P90 < 500ms, P95 < 1s
-- **Availability**: 99.9% (< 0.1% error rate)
-- **Request Rate**: Total, successful, failed
-- **LLM Token Usage**: Request/response tokens
-- **Resource Utilization**: Heap, threads, GC time
+- Model Error Rates (%) — Prometheus
+  - Formula (per model, selected range):
+    `100 * (sum(increase(llm_errors_total[$__range])) by (model)) / (sum(increase(llm_errors_total[$__range])) by (model) + sum(increase(llm_prompts_success_total[$__range])) by (model))`
+  - Shows per‑model error ratio aligned with the overall success rate.
 
-## 🚨 Alerts
+- Total Errors by Model (range) — Prometheus
+  - `sum(increase(llm_errors_total[$__range])) by (model)`
 
-View active alerts:
-- **Prometheus UI**: http://localhost:9090/alerts
-- **Grafana Dashboard**: Check the "Active Alerts" panel
+- Errors by Type (range) — Prometheus
+  - `sum(increase(llm_errors_total[$__range])) by (error_type)`
 
-**Configured alerts:**
+- Errors by Region (range) — Prometheus
+  - `sum(increase(llm_errors_total[$__range])) by (region)`
 
-| Alert | Severity | Threshold | Description |
-|-------|----------|-----------|-------------|
-| HighLatencyP90 | Warning | P90 > 500ms | SLO violation |
-| HighLatencyP95 | Critical | P95 > 1s | Critical SLO violation |
-| HighErrorRate | Critical | 5xx > 0.1% | Availability SLO violation |
-| ServiceDown | Critical | Service unreachable 1min | Service outage |
-| HighMemoryUsage | Critical | Heap > 85% | Resource exhaustion risk |
+- Top Errors by Model (range) — Prometheus (bar gauge)
+  - `topk(8, sum(increase(llm_errors_total[$__range])) by (model, error_type))`
 
-See [SLOs and Alerting](docs/runbooks/slo-and-alerts.md) for complete alert documentation.
+- Request Success Rate — Prometheus (gauge)
+  - `sum(increase(llm_prompts_success_total[$__range])) / (sum(increase(llm_prompts_success_total[$__range])) + sum(increase(llm_errors_total[$__range]))) * 100`
+
+- Total Requests (range) — Prometheus (stat)
+  - `sum(increase(llm_prompts_success_total[$__range])) + sum(increase(llm_errors_total[$__range]))`
+
+- Recent Error Logs — Loki
+  - JSON logs from the app with MDC fields (traceId, spanId, model, region, endpoint, latency).
+  - Use Explore → Loki to filter by `job="los-app"` and fields (`| json | level="ERROR"`, etc.).
+
+- Traces — Tempo (ingested via Grafana Alloy / OTLP)
+  - The app exports OTLP traces to Tempo (`/v1/traces`). In Explore → Tempo you can open traces by ID or filter by attributes (endpoint, region, model).
+
+Got “No data”? Run the load generator for a minute:
+```bash
+BASE_URL="http://136.115.91.255:8080" \
+APP_USER="demo" APP_PASSWORD="observability!" \
+./load-generator.sh --pattern steady --base-url "$BASE_URL" --skip-health-check
+```
+
+See [SLOs and Alerting](docs/runbooks/slo-and-alerts.md) for runbooks covering the underlying metrics and burn-rate alerts.
 
 ## 🧪 Testing & Development (local, optional)
 

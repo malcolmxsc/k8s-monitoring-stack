@@ -69,7 +69,7 @@
       "pluginVersion": "12.2.0",
       "targets": [
         {
-          "expr": "(sum(rate(llm_errors_total[15m])) by (model) / (sum(rate(llm_errors_total[15m])) by (model) + sum(rate(llm_prompts_success_total[15m])) by (model))) * 100",
+          "expr": "100 * (sum(increase(llm_errors_total[$__range])) by (model)) / (sum(increase(llm_errors_total[$__range])) by (model) + sum(increase(llm_prompts_success_total[$__range])) by (model))",
           "legendFormat": "{{model}}",
           "refId": "A"
         }
@@ -79,7 +79,7 @@
       "type": "stat"
     },
     {
-      "title": "Total Errors by Model (15m rate)",
+      "title": "Total Errors by Model (range)",
       "type": "timeseries",
       "gridPos": {
         "x": 0,
@@ -94,7 +94,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(llm_errors_total[15m])) by (model) * 300",
+          "expr": "sum(increase(llm_errors_total[$__range])) by (model)",
           "refId": "A",
           "legendFormat": "{{model}}"
         }
@@ -172,7 +172,7 @@
       }
     },
     {
-      "title": "Errors by Type",
+      "title": "Errors by Type (range)",
       "type": "piechart",
       "gridPos": {
         "x": 12,
@@ -187,7 +187,7 @@
       },
       "targets": [
         {
-          "expr": "sum(llm_errors_total) by (error_type)",
+          "expr": "sum(increase(llm_errors_total[$__range])) by (error_type)",
           "refId": "A",
           "legendFormat": "{{error_type}}"
         }
@@ -282,7 +282,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(llm_prompts_success_total[15m])) / (sum(rate(llm_prompts_success_total[15m])) + sum(rate(llm_errors_total[15m]))) * 100",
+          "expr": "sum(increase(llm_prompts_success_total[$__range])) / (sum(increase(llm_prompts_success_total[$__range])) + sum(increase(llm_errors_total[$__range]))) * 100",
           "refId": "A"
         }
       ],
@@ -322,7 +322,7 @@
       }
     },
     {
-      "title": "Total Requests (15m rate)",
+      "title": "Total Requests (range)",
       "type": "stat",
       "gridPos": {
         "x": 12,
@@ -337,17 +337,17 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(llm_prompts_success_total[15m])) * 300 + sum(rate(llm_errors_total[15m])) * 300",
+          "expr": "sum(increase(llm_prompts_success_total[$__range])) + sum(increase(llm_errors_total[$__range]))",
           "refId": "A",
           "legendFormat": "Total"
         },
         {
-          "expr": "sum(rate(llm_prompts_success_total[15m])) * 300",
+          "expr": "sum(increase(llm_prompts_success_total[$__range]))",
           "refId": "B",
           "legendFormat": "Successful"
         },
         {
-          "expr": "sum(rate(llm_errors_total[15m])) * 300",
+          "expr": "sum(increase(llm_errors_total[$__range]))",
           "refId": "C",
           "legendFormat": "Failed"
         }
@@ -460,7 +460,7 @@
     }
   ],
   "time": {
-    "from": "now-15m",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {
