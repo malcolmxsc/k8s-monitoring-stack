@@ -222,7 +222,7 @@ View active alerts:
 | ServiceDown | Critical | Service unreachable 1min | Service outage |
 | HighMemoryUsage | Critical | Heap > 85% | Resource exhaustion risk |
 
-See [SLO_ALERTS.md](SLO_ALERTS.md) for complete alert documentation.
+See [SLOs and Alerting](docs/runbooks/slo-and-alerts.md) for complete alert documentation.
 
 ## 🧪 Testing & Development (local, optional)
 
@@ -324,11 +324,13 @@ observability-sandbox/
 - **Multi-window alerts**: 2min, 5min, 10min
 - **Severity levels**: Critical, Warning, Info
 
-## � Additional Documentation
+## 📚 Additional Documentation
 
-- [SLO Implementation Guide](SLO_IMPLEMENTATION.md) - Complete SLO setup and testing
-- [SLO Alert Reference](SLO_ALERTS.md) - Alert rules and PromQL queries
-- [Cleanup Summary](CLEANUP_SUMMARY.md) - Code quality improvements
+- [SLOs and Alerting](docs/runbooks/slo-and-alerts.md) – Recording rules, burn-rate alerts, and test procedures.
+- [Prometheus Dashboard Notes](docs/runbooks/prometheus-dashboard.md) – Key metrics and query snippets powering the Grafana dashboard.
+- [Error Analysis Playbook](docs/runbooks/error-analysis.md) – How to investigate model-specific failures across logs, metrics, and traces.
+- [Load Generator Runbook](docs/runbooks/load-generator.md) – Traffic patterns and operational tips for the bundled client script.
+- [Observability Stack Health Check](docs/runbooks/health-check.md) – Pre-demo checklist to confirm all components are healthy.
 
 ## 🛠️ Tech Stack
 
