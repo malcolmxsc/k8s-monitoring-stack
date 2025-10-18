@@ -175,21 +175,40 @@ APP_USER="demo" APP_PASSWORD="observability!" \
 
 ### Metrics (Grafana → Explore → Prometheus)
 
-**Application metrics:**
+These match the dashboard panels and respect the Grafana time picker via `$__range`:
+
 ```promql
-# Request rate
-rate(http_server_requests_seconds_count[1m])
+# Model error rate per model
+100 * (sum(increase(llm_errors_total[$__range])) by (model))
+    / (sum(increase(llm_errors_total[$__range])) by (model)
+      + sum(increase(llm_prompts_success_total[$__range])) by (model))
 
-# P95 latency
-histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[1m]))
+# Total errors by type
+sum(increase(llm_errors_total[$__range])) by (error_type)
 
-# Error rate
-rate(http_server_requests_seconds_count{status=~"5.."}[1m])
+# Errors by region
+sum(increase(llm_errors_total[$__range])) by (region)
 
-# LLM token usage
-rate(llm_request_tokens_sum[1m]) / rate(llm_request_tokens_count[1m])
+# Request success rate (overall)
+sum(increase(llm_prompts_success_total[$__range]))
+  / (sum(increase(llm_prompts_success_total[$__range]))
+    + sum(increase(llm_errors_total[$__range]))) * 100
 
-# Memory usage
+# Total requests (success + error)
+sum(increase(llm_prompts_success_total[$__range]))
+  + sum(increase(llm_errors_total[$__range]))
+```
+
+Classic HTTP metrics from Micrometer are also available if you need them (request rate, latency histograms, JVM memory). Example:
+
+```promql
+# HTTP request rate
+rate(http_server_requests_seconds_count[5m])
+
+# HTTP P95 latency
+histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m]))
+
+# JVM heap utilisation
 jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}
 ```
 
