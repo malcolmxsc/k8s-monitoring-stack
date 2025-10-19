@@ -215,8 +215,8 @@
       }
     },
     {
-      "title": "Errors Per Minute by Model",
-      "type": "timeseries",
+      "title": "Top Error Models (range)",
+      "type": "barchart",
       "gridPos": {
         "x": 0,
         "y": 14,
@@ -230,9 +230,10 @@
       },
       "targets": [
         {
-          "expr": "rate(llm_errors_total[1m]) * 60",
+          "expr": "sum(increase(llm_errors_total[$__range])) by (model)",
           "refId": "A",
-          "legendFormat": "{{model}} - {{error_type}}"
+          "legendFormat": "{{model}}",
+          "instant": true
         }
       ],
       "fieldConfig": {
@@ -240,32 +241,30 @@
           "color": {
             "mode": "palette-classic"
           },
+          "decimals": 0,
+          "unit": "none",
           "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 15,
-            "showPoints": "never",
-            "spanNulls": true
-          },
-          "unit": "short",
-          "decimals": 1
+            "displayMode": "auto",
+            "drawStyle": "bars",
+            "lineWidth": 0,
+            "showPoints": "always",
+            "gradientMode": "none"
+          }
         },
         "overrides": []
       },
       "options": {
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        },
+        "orientation": "horizontal",
+        "displayMode": "auto",
         "legend": {
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true,
-          "calcs": [
-            "mean",
-            "max",
-            "last"
-          ]
-        }
+          "displayMode": "hidden",
+          "placement": "right",
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        },
+        "showValue": "auto"
       }
     },
     {
