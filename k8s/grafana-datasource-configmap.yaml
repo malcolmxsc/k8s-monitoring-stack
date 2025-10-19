@@ -12,7 +12,7 @@ data:
       - name: Prometheus
         type: prometheus
         access: proxy
-        url: http://prometheus-kube-prometheus-stack-prometheus.observability-sandbox.svc:9090
+        url: http://prom-kube-prometheus-stack-prometheus.observability-sandbox.svc:9090
         uid: PBFA97CFB590B2093
         jsonData:
           timeInterval: 30s
