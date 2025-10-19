@@ -69,7 +69,7 @@
       "pluginVersion": "12.2.0",
       "targets": [
         {
-          "expr": "100 * (sum(increase(llm_errors_total[$__range])) by (model)) / (sum(increase(llm_errors_total[$__range])) by (model) + sum(increase(llm_prompts_success_total[$__range])) by (model))",
+          "expr": "(100 * (sum(increase(llm_errors_total[$__range])) by (model)) / clamp_min(sum(increase(llm_errors_total[$__range])) by (model) + sum(increase(llm_prompts_success_total[$__range])) by (model), 1)) or (label_replace(vector(0), \"model\", \"none\", \"\", \"\") * on() group_left absent(sum(increase(llm_errors_total[$__range])) by (model) + sum(increase(llm_prompts_success_total[$__range])) by (model)))",
           "legendFormat": "{{model}}",
           "refId": "A"
         }
@@ -94,7 +94,7 @@
       },
       "targets": [
         {
-          "expr": "sum(increase(llm_errors_total[$__range])) by (model)",
+          "expr": "sum(increase(llm_errors_total[$__range])) by (model) or (label_replace(vector(0), \"model\", \"none\", \"\", \"\") * on() group_left absent(sum(increase(llm_errors_total[$__range])) by (model)))",
           "refId": "A",
           "legendFormat": "{{model}}"
         }
@@ -187,7 +187,7 @@
       },
       "targets": [
         {
-          "expr": "sum(increase(llm_errors_total[$__range])) by (error_type)",
+          "expr": "sum(increase(llm_errors_total[$__range])) by (error_type) or (label_replace(vector(0), \"error_type\", \"none\", \"\", \"\") * on() group_left absent(sum(increase(llm_errors_total[$__range])) by (error_type)))",
           "refId": "A",
           "legendFormat": "{{error_type}}"
         }
@@ -230,70 +230,70 @@
       },
       "targets": [
         {
-          "expr": "topk(5, sum(increase(llm_errors_total[$__range])) by (model, error_type))",
+          "expr": "topk(5, sum(increase(llm_errors_total[$__range])) by (model, error_type)) or label_replace(label_replace(vector(0), \"model\", \"no-data\", \"\", \"\"), \"error_type\", \"no-data\", \"\", \"\")",
           "refId": "A",
           "legendFormat": "{{model}} \u2013 {{error_type}}",
-          "instant": true
-        }
-      ],
-      "transformations": [
-        {
-          "id": "labelsToFields",
-          "options": {
-            "mode": "columns"
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "indexByName": {
-              "model": 0,
-              "error_type": 1,
-              "Value": 2
-            },
-            "renameByName": {
-              "model": "Model",
-              "error_type": "Error",
-              "Value": "Errors"
-            },
-            "excludeByName": {
-              "__name__": true,
-              "Time": true
-            }
-          }
-        },
-        {
-          "id": "sortBy",
-          "options": {
-            "fields": {},
-            "sort": [
-              {
-                "field": "Errors",
-                "desc": true
-              }
-            ]
-          }
+          "instant": true,
+          "format": "table"
         }
       ],
       "fieldConfig": {
         "defaults": {
           "decimals": 0,
-          "unit": "none",
-          "custom": {
-            "align": "right"
-          }
+          "unit": "none"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Value"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Errors"
+              },
+              {
+                "id": "custom.align",
+                "value": "right"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "model"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Model"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "error_type"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Error"
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "showHeader": true,
         "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
         "sortBy": {
           "displayName": "Errors",
           "desc": true
-        },
-        "footer": {
-          "show": false
         }
       }
     },
@@ -313,7 +313,7 @@
       },
       "targets": [
         {
-          "expr": "sum(increase(llm_prompts_success_total[$__range])) / (sum(increase(llm_prompts_success_total[$__range])) + sum(increase(llm_errors_total[$__range]))) * 100",
+          "expr": "(sum(increase(llm_prompts_success_total[$__range])) / clamp_min(sum(increase(llm_prompts_success_total[$__range])) + sum(increase(llm_errors_total[$__range])), 1) * 100) or vector(0)",
           "refId": "A"
         }
       ],
@@ -368,17 +368,17 @@
       },
       "targets": [
         {
-          "expr": "sum(increase(llm_prompts_success_total[$__range])) + sum(increase(llm_errors_total[$__range]))",
+          "expr": "sum(increase(llm_prompts_success_total[$__range])) + sum(increase(llm_errors_total[$__range])) or vector(0)",
           "refId": "A",
           "legendFormat": "Total"
         },
         {
-          "expr": "sum(increase(llm_prompts_success_total[$__range]))",
+          "expr": "sum(increase(llm_prompts_success_total[$__range])) or vector(0)",
           "refId": "B",
           "legendFormat": "Successful"
         },
         {
-          "expr": "sum(increase(llm_errors_total[$__range]))",
+          "expr": "sum(increase(llm_errors_total[$__range])) or vector(0)",
           "refId": "C",
           "legendFormat": "Failed"
         }
