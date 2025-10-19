@@ -3,8 +3,10 @@
 # Load Generator for Observability Sandbox
 # Generates realistic traffic with varied users, regions, and patterns
 
-BASE_URL="http://localhost:8080"
-COLORS=true
+BASE_URL="${BASE_URL:-http://localhost:8080}"
+COLORS="${COLORS:-true}"
+SKIP_HEALTH_CHECK=false
+PATTERN_OVERRIDE=""
 
 # Color output
 if [ "$COLORS" = true ]; then
@@ -270,6 +272,10 @@ run_all_patterns() {
 
 # Check if service is running
 check_service() {
+    if [ "$SKIP_HEALTH_CHECK" = true ]; then
+        return
+    fi
+    
     if ! curl -s "$BASE_URL/actuator/health" > /dev/null 2>&1; then
         echo -e "${RED}Error: Service not running at $BASE_URL${NC}"
         echo "Please start the application first with: ./gradlew bootRun"
@@ -319,4 +325,92 @@ main() {
     fi
 }
 
-main "$@"
+print_usage() {
+    cat <<EOF
+Usage: $0 [OPTIONS] [pattern]
+
+Patterns: steady | burst | regional | session | continuous | all | test
+
+Options:
+  --base-url URL          Override the target base URL (default: $BASE_URL)
+  --skip-health-check     Do not probe /actuator/health before sending traffic
+  --pattern NAME          Shortcut for specifying the pattern (same values as above)
+  --colors [true|false]   Enable/disable color output (default: true)
+  -h, --help              Show this help text
+
+You can also pass the pattern as the first positional argument (legacy mode).
+EOF
+}
+
+parse_args() {
+    POSITIONAL=()
+    
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --base-url)
+                if [ -z "$2" ]; then
+                    echo "Error: --base-url requires a value" >&2
+                    exit 1
+                fi
+                BASE_URL="$2"
+                shift 2
+                ;;
+            --skip-health-check)
+                SKIP_HEALTH_CHECK=true
+                shift
+                ;;
+            --pattern)
+                if [ -z "$2" ]; then
+                    echo "Error: --pattern requires a value" >&2
+                    exit 1
+                fi
+                PATTERN_OVERRIDE="$2"
+                shift 2
+                ;;
+            --colors)
+                if [ -z "$2" ]; then
+                    echo "Error: --colors requires true or false" >&2
+                    exit 1
+                fi
+                COLORS="$2"
+                shift 2
+                ;;
+            -h|--help)
+                print_usage
+                exit 0
+                ;;
+            --)
+                shift
+                POSITIONAL+=("$@")
+                break
+                ;;
+            -*)
+                echo "Error: Unknown option $1" >&2
+                print_usage >&2
+                exit 1
+                ;;
+            *)
+                POSITIONAL+=("$1")
+                shift
+                ;;
+        esac
+    done
+    
+    if [ -n "$PATTERN_OVERRIDE" ]; then
+        POSITIONAL=("$PATTERN_OVERRIDE" "${POSITIONAL[@]}")
+    fi
+    
+    set -- "${POSITIONAL[@]}"
+    
+    if [ "$COLORS" != true ]; then
+        GREEN=''
+        YELLOW=''
+        RED=''
+        BLUE=''
+        NC=''
+    fi
+    
+    main "$@"
+}
+
+parse_args "$@"

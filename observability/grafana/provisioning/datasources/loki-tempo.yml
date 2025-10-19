@@ -8,8 +8,9 @@ datasources:
     jsonData:
       derivedFields:
         - datasourceUid: P214B5B846CF3925F
-          matcherRegex: '"?traceId"?\s*[:=]\s*"?([0-9a-fA-F]+)"?'
-          name: TraceID
+          # permissive regex: quotes optional, allow hex and hyphens, case-insensitive
+          matcherRegex: '"?traceId"?\s*[:=]\s*"?([0-9a-fA-F-]+)"?'
+          name: traceId
           url: '$${__value.raw}'
           datasourceName: Tempo
 

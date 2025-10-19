@@ -23,10 +23,11 @@ data:
         uid: P8E80F9AEF21F6940
         jsonData:
           derivedFields:
-            - datasourceUid: PBFA97CFB590B2093
-              matcherRegex: '\\"traceId\\":\\"([a-f0-9-]+)'
+            - datasourceUid: P214B5B846CF3925F
+              matcherRegex: '"?traceId"?\s*[:=]\s*"?([0-9a-fA-F-]+)"?'
               name: traceId
               url: '$${__value.raw}'
+              datasourceName: Tempo
       - name: Tempo
         type: tempo
         access: proxy
@@ -36,11 +37,13 @@ data:
           tracesToLogs:
             datasourceUid: P8E80F9AEF21F6940
             mappedTags:
-              - key: service
-                value: service
+              - key: service.name
+                value: service_name
             mappedTagsValue: true
             filterByTraceID: true
             filterBySpanID: true
+            customQuery: false
+            query: '{trace_id="$traceID"}'
           serviceMap:
             datasourceUid: PBFA97CFB590B2093
           nodeGraph:

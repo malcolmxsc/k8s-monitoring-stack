@@ -387,12 +387,7 @@
               "align": "auto",
               "displayMode": "auto"
             },
-            "links": [
-              {
-                "title": "View Logs in Loki",
-                "url": "/explore?left={\"datasource\":\"P8E80F9AEF21F6940\",\"queries\":[{\"refId\":\"A\",\"expr\":\"${__data.fields.alertname}\",\"datasource\":{\"type\":\"loki\",\"uid\":\"P8E80F9AEF21F6940\"}}],\"range\":{\"from\":\"now-1h\",\"to\":\"now\"}}"
-              }
-            ]
+            "links": []
           },
           "overrides": [
             {
@@ -404,22 +399,7 @@
                 {
                   "id": "links",
                   "value": [
-                    {
-                      "title": "🔍 View Error Logs (Last 15m)",
-                      "url": "/explore?left={\"datasource\":\"P8E80F9AEF21F6940\",\"queries\":[{\"refId\":\"A\",\"expr\":\"{job=\\\"los-app\\\"} |= \\\"ERROR\\\"\",\"datasource\":{\"type\":\"loki\",\"uid\":\"P8E80F9AEF21F6940\"}}],\"range\":{\"from\":\"now-15m\",\"to\":\"now\"}}"
-                    },
-                    {
-                      "title": "🔗 View Traces with Errors",
-                      "url": "/explore?left={\"datasource\":\"P214B5B846CF3925F\",\"queries\":[{\"refId\":\"A\",\"queryType\":\"traceql\",\"query\":\"{status=error}\",\"datasource\":{\"type\":\"tempo\",\"uid\":\"P214B5B846CF3925F\"}}],\"range\":{\"from\":\"now-15m\",\"to\":\"now\"}}"
-                    },
-                    {
-                      "title": "📊 View Alert Metric in Prometheus",
-                      "url": "/explore?left={\"datasource\":\"PBFA97CFB590B2093\",\"queries\":[{\"refId\":\"A\",\"expr\":\"ALERTS{alertname=\\\"${__data.fields.Alert}\\\"}\",\"datasource\":{\"type\":\"prometheus\",\"uid\":\"PBFA97CFB590B2093\"}}],\"range\":{\"from\":\"now-1h\",\"to\":\"now\"}}"
-                    },
-                    {
-                      "title": "🚨 View 5xx Error Logs (Last 30m)",
-                      "url": "/explore?left={\"datasource\":\"P8E80F9AEF21F6940\",\"queries\":[{\"refId\":\"A\",\"expr\":\"{job=\\\"los-app\\\"} |~ \\\"status=5[0-9]{2}\\\"\",\"datasource\":{\"type\":\"loki\",\"uid\":\"P8E80F9AEF21F6940\"}}],\"range\":{\"from\":\"now-30m\",\"to\":\"now\"}}"
-                    }
+                    
                   ]
                 }
               ]

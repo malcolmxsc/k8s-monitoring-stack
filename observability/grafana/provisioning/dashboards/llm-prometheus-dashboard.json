@@ -441,6 +441,25 @@
         "type": "loki",
         "uid": "P8E80F9AEF21F6940"
       },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {}
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "traceId"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": []
+              }
+            ]
+          }
+        ]
+      },
       "targets": [
         {
           "expr": "{job=\"los-app\"} |= \"generate_error\" | json",
@@ -454,6 +473,7 @@
         "wrapLogMessage": true,
         "prettifyLogMessage": false,
         "enableLogDetails": true,
+        "showDerivedFields": true,
         "dedupStrategy": "none",
         "sortOrder": "Descending"
       }

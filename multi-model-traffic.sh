@@ -21,7 +21,7 @@ while true; do
     region=${REGIONS[$RANDOM % ${#REGIONS[@]}]}
     
     # Send request
-    response=$(curl -s --fail --connect-timeout 2 --max-time 5 --retry 2 --retry-delay 0.5 -w "\n%{http_code}" -X POST http://localhost:8080/generate \
+    response=$(curl -s --fail --connect-timeout 2 --max-time 5 --retry 2 --retry-delay 1 -w "\n%{http_code}" -X POST http://localhost:8080/generate \
         -H "Content-Type: application/json" \
         -H "X-User-Id: $user" \
         -H "X-Region: $region" \

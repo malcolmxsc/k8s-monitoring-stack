@@ -41,7 +41,7 @@ A production-ready observability stack demonstrating distributed tracing, struct
 ```bash
 kubectl apply -f k8s/namespace.yaml
 kubectl apply -f k8s/logback-configmap.yaml
-kubectl apply -f k8s/promtail-configmap.yaml
+kubectl apply -f k8s/los-app-promtail-configmap.yaml
 ```
 
 Create the application Secret (choose one):
@@ -313,6 +313,8 @@ observability-sandbox/
 ├── src/main/resources/
 │   ├── application.properties       # Spring Boot config
 │   └── logback-spring.xml          # Structured logging config
+├── k8s
+│   └── los-app-promtail-configmap.yaml # Promtail pipeline that promotes trace/span IDs to labels
 ├── observability/
 │   ├── alloy/
 │   │   └── config.river            # OpenTelemetry collector config
