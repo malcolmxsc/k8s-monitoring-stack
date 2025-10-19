@@ -8,7 +8,7 @@ metadata:
 data:
   llm-prometheus-dashboard.json: |
     {
-      "title": "LLM Model Reliability (Prometheus)",
+      "title": "LLM Error Overview (Prometheus)",
       "tags": [
         "llm",
         "errors",
@@ -225,7 +225,7 @@ data:
         },
         {
           "title": "Top Error Models (range)",
-          "type": "stat",
+          "type": "table",
           "gridPos": {
             "x": 0,
             "y": 14,
@@ -239,33 +239,71 @@ data:
           },
           "targets": [
             {
-              "expr": "topk(1, sum(increase(llm_errors_total[$__range])) by (model, error_type))",
+              "expr": "topk(5, sum(increase(llm_errors_total[$__range])) by (model, error_type))",
               "refId": "A",
               "legendFormat": "{{model}} – {{error_type}}",
               "instant": true
             }
           ],
+          "transformations": [
+            {
+              "id": "labelsToFields",
+              "options": {
+                "mode": "columns"
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "indexByName": {
+                  "model": 0,
+                  "error_type": 1,
+                  "Value": 2
+                },
+                "renameByName": {
+                  "model": "Model",
+                  "error_type": "Error",
+                  "Value": "Errors"
+                },
+                "excludeByName": {
+                  "__name__": true,
+                  "Time": true
+                }
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "field": "Errors",
+                    "desc": true
+                  }
+                ]
+              }
+            }
+          ],
           "fieldConfig": {
             "defaults": {
               "decimals": 0,
-              "unit": "none"
+              "unit": "none",
+              "custom": {
+                "align": "right"
+              }
             },
             "overrides": []
           },
           "options": {
-            "orientation": "auto",
-            "colorMode": "value",
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "reduceOptions": {
-              "values": false,
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": ""
+            "showHeader": true,
+            "cellHeight": "sm",
+            "sortBy": {
+              "displayName": "Errors",
+              "desc": true
             },
-            "textMode": "nameAndValue",
-            "wideLayout": true
+            "footer": {
+              "show": false
+            }
           }
         },
         {
