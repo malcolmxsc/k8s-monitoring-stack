@@ -44,6 +44,8 @@ data:
             filterBySpanID: true
             customQuery: false
             query: '{trace_id="$traceID"}'
+            spanStartTimeShift: "-5m"
+            spanEndTimeShift: "5m"
           serviceMap:
             datasourceUid: PBFA97CFB590B2093
           nodeGraph:

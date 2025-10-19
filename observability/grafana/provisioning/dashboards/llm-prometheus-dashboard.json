@@ -208,7 +208,9 @@
         "defaults": {
           "color": {
             "mode": "palette-classic"
-          }
+          },
+          "decimals": 0,
+          "unit": "none"
         }
       }
     },
@@ -355,7 +357,7 @@
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "decimals": 1,
+          "decimals": 0,
           "color": {
             "mode": "palette-classic"
           },

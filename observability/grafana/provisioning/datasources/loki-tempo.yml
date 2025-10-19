@@ -21,6 +21,18 @@ datasources:
     uid: P214B5B846CF3925F
     isDefault: false
     jsonData:
+      tracesToLogs:
+        datasourceUid: P8E80F9AEF21F6940
+        mappedTags:
+          - key: service.name
+            value: service_name
+        mappedTagsValue: true
+        filterByTraceID: true
+        filterBySpanID: true
+        customQuery: false
+        spanStartTimeShift: "-5m"
+        spanEndTimeShift: "5m"
+        query: '{trace_id="$traceID"}'
       nodeGraph:
         enabled: true
 
