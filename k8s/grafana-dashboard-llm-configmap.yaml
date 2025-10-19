@@ -225,7 +225,7 @@ data:
         },
         {
           "title": "Top Error Models (range)",
-          "type": "barchart",
+          "type": "table",
           "gridPos": {
             "x": 0,
             "y": 14,
@@ -245,35 +245,53 @@ data:
               "instant": true
             }
           ],
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "indexByName": {
+                  "Time": 1,
+                  "Value": 2
+                },
+                "renameByName": {
+                  "Time": "Model",
+                  "Value": "Errors"
+                }
+              }
+            },
+            {
+              "id": "sortBy",
+              "options": {
+                "fields": {},
+                "sort": [
+                  {
+                    "field": "Errors",
+                    "desc": true
+                  }
+                ]
+              }
+            }
+          ],
           "fieldConfig": {
             "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
               "decimals": 0,
               "unit": "none",
               "custom": {
-                "displayMode": "auto",
-                "drawStyle": "bars",
-                "lineWidth": 0,
-                "showPoints": "always",
-                "gradientMode": "none"
+                "width": 150
               }
             },
             "overrides": []
           },
           "options": {
-            "orientation": "horizontal",
-            "displayMode": "auto",
-            "legend": {
-              "displayMode": "hidden",
-              "placement": "right",
-              "showLegend": false
+            "showHeader": true,
+            "cellHeight": "sm",
+            "sortBy": {
+              "displayName": "Errors",
+              "desc": true
             },
-            "tooltip": {
-              "mode": "single"
-            },
-            "showValue": "auto"
+            "footer": {
+              "show": false
+            }
           }
         },
         {
