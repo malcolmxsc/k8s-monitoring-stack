@@ -225,7 +225,7 @@ data:
         },
         {
           "title": "Top Error Models (range)",
-          "type": "table",
+          "type": "stat",
           "gridPos": {
             "x": 0,
             "y": 14,
@@ -239,59 +239,33 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(increase(llm_errors_total[$__range])) by (model)",
+              "expr": "topk(1, sum(increase(llm_errors_total[$__range])) by (model, error_type))",
               "refId": "A",
-              "legendFormat": "{{model}}",
+              "legendFormat": "{{model}} – {{error_type}}",
               "instant": true
-            }
-          ],
-          "transformations": [
-            {
-              "id": "organize",
-              "options": {
-                "indexByName": {
-                  "Time": 1,
-                  "Value": 2
-                },
-                "renameByName": {
-                  "Time": "Model",
-                  "Value": "Errors"
-                }
-              }
-            },
-            {
-              "id": "sortBy",
-              "options": {
-                "fields": {},
-                "sort": [
-                  {
-                    "field": "Errors",
-                    "desc": true
-                  }
-                ]
-              }
             }
           ],
           "fieldConfig": {
             "defaults": {
               "decimals": 0,
-              "unit": "none",
-              "custom": {
-                "width": 150
-              }
+              "unit": "none"
             },
             "overrides": []
           },
           "options": {
-            "showHeader": true,
-            "cellHeight": "sm",
-            "sortBy": {
-              "displayName": "Errors",
-              "desc": true
+            "orientation": "auto",
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "auto",
+            "reduceOptions": {
+              "values": false,
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": ""
             },
-            "footer": {
-              "show": false
-            }
+            "textMode": "nameAndValue",
+            "wideLayout": true
           }
         },
         {
