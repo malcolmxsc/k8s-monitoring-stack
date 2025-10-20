@@ -242,6 +242,7 @@ This project ships a single “LLM Model Reliability (Prometheus)” dashboard. 
 - Recent Error Logs — Loki
   - JSON logs from the app with MDC fields (traceId, spanId, model, region, endpoint, latency).
   - Use Explore → Loki to filter by `job="los-app"` and fields (`| json | level="ERROR"`, etc.).
+  - Viewer users need the Grafana setting `GF_USERS_ALLOW_VIEWERS_EXPLORE=true` to see the Tempo trace links derived from the `traceId` field.
 
 - Traces — Tempo (ingested via Grafana Alloy / OTLP)
   - The app exports OTLP traces to Tempo (`/v1/traces`). In Explore → Tempo you can open traces by ID or filter by attributes (endpoint, region, model).
