@@ -86,8 +86,8 @@ curl -u demo:observability! -X POST http://<LOS_APP_LB_IP>:8080/generate \
 
 ### Interview Quick Start (clickable)
 
-- App base URL: [http://136.115.91.255:8080](http://136.115.91.255:8080)
-- Health check: [http://136.115.91.255:8080/actuator/health](http://136.115.91.255:8080/actuator/health)
+- App base URL: [http://35.223.226.27/](http://35.223.226.27/)
+- Health check: [http://35.223.226.27//actuator/health](http://35.223.226.27//actuator/health)
 
 Auth for app endpoints: `demo / observability!`
 
@@ -95,7 +95,7 @@ Run a one‑shot request (ready to copy/paste):
 
 ```bash
 curl -s -u demo:observability! \
-  -X POST "http://136.115.91.255:8080/generate" \
+  -X POST "http://35.223.226.27//generate" \
   -H "Content-Type: application/json" \
   -d '{"prompt":"hello"}' | jq .
 ```
@@ -103,7 +103,7 @@ curl -s -u demo:observability! \
 Generate safe demo traffic:
 
 ```bash
-BASE_URL="http://136.115.91.255:8080" \
+BASE_URL="http://35.223.226.27/" \
 APP_USER="demo" APP_PASSWORD="observability!" \
 ./load-generator.sh --pattern steady --base-url "$BASE_URL" --skip-health-check
 ```
@@ -249,7 +249,7 @@ This project ships a single “LLM Model Reliability (Prometheus)” dashboard. 
 
 Got “No data”? Run the load generator for a minute:
 ```bash
-BASE_URL="http://136.115.91.255:8080" \
+BASE_URL="http://35.223.226.27/" \
 APP_USER="demo" APP_PASSWORD="observability!" \
 ./load-generator.sh --pattern steady --base-url "$BASE_URL" --skip-health-check
 ```

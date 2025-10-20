@@ -509,7 +509,7 @@
                 "id": "links",
                 "value": [
                   {
-                    "title": "View trace",
+                    "title": "Tempo",
                     "internal": {
                       "datasourceUid": "P214B5B846CF3925F",
                       "query": {
