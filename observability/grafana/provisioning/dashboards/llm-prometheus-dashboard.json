@@ -486,12 +486,39 @@
           {
             "matcher": {
               "id": "byName",
+              "options": "trace_id"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
               "options": "traceId"
             },
             "properties": [
               {
+                "id": "displayName",
+                "value": "Trace"
+              },
+              {
                 "id": "links",
-                "value": []
+                "value": [
+                  {
+                    "title": "View trace",
+                    "internal": {
+                      "datasourceUid": "P214B5B846CF3925F",
+                      "query": {
+                        "queryType": "traceId",
+                        "traceId": "${__value.raw}"
+                      }
+                    }
+                  }
+                ]
               }
             ]
           }

@@ -338,28 +338,28 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                "value": null,
-                "color": "red"
-              },
-              {
-                "value": 25,
-                "color": "orange"
-              },
-              {
-                "value": 50,
-                "color": "yellow"
-              },
-              {
-                "value": 75,
-                "color": "light-green"
-              },
-              {
-                "value": 100,
-                "color": "green"
+                    "value": null,
+                    "color": "red"
+                  },
+                  {
+                    "value": 25,
+                    "color": "orange"
+                  },
+                  {
+                    "value": 50,
+                    "color": "yellow"
+                  },
+                  {
+                    "value": 75,
+                    "color": "light-green"
+                  },
+                  {
+                    "value": 100,
+                    "color": "green"
+                  }
+                ]
               }
-            ]
-          }
-        }
+            }
           },
           "options": {
             "orientation": "auto",
@@ -395,17 +395,17 @@ data:
             {
               "expr": "sum(increase(llm_errors_total[$__range])) or vector(0)",
               "refId": "C",
-          "legendFormat": "Failed"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "decimals": 0,
-          "color": {
-            "mode": "palette-classic"
-          },
-          "mappings": []
+              "legendFormat": "Failed"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "none",
+              "decimals": 0,
+              "color": {
+                "mode": "palette-classic"
+              },
+              "mappings": []
             },
             "overrides": [
               {
@@ -495,12 +495,39 @@ data:
               {
                 "matcher": {
                   "id": "byName",
+                  "options": "trace_id"
+                },
+                "properties": [
+                  {
+                    "id": "custom.hidden",
+                    "value": true
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
                   "options": "traceId"
                 },
                 "properties": [
                   {
+                    "id": "displayName",
+                    "value": "Trace"
+                  },
+                  {
                     "id": "links",
-                    "value": []
+                    "value": [
+                      {
+                        "title": "View trace",
+                        "internal": {
+                          "datasourceUid": "P214B5B846CF3925F",
+                          "query": {
+                            "queryType": "traceId",
+                            "traceId": "${__value.raw}"
+                          }
+                        }
+                      }
+                    ]
                   }
                 ]
               }
