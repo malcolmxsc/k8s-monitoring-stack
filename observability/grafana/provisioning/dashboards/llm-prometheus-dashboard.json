@@ -215,7 +215,7 @@
       }
     },
     {
-      "title": "Top Error Models (range)",
+      "title": "Top Errors by Model (range)",
       "type": "table",
       "gridPos": {
         "x": 0,
@@ -230,7 +230,7 @@
       },
       "targets": [
         {
-          "expr": "topk(5, sum(increase(llm_errors_total[$__range])) by (model, error_type)) or label_replace(label_replace(vector(0), \"model\", \"no-data\", \"\", \"\"), \"error_type\", \"no-data\", \"\", \"\")",
+          "expr": "topk by (model) (1, sum(increase(llm_errors_total[$__range])) by (model, error_type))",
           "refId": "A",
           "legendFormat": "{{model}} \u2013 {{error_type}}",
           "instant": true,
@@ -279,7 +279,7 @@
             "properties": [
               {
                 "id": "displayName",
-                "value": "Error"
+                "value": "Top Error Type"
               }
             ]
           }
@@ -291,10 +291,12 @@
         "footer": {
           "show": false
         },
-        "sortBy": {
-          "displayName": "Errors",
-          "desc": true
-        }
+        "sortBy": [
+          {
+            "displayName": "Errors",
+            "desc": true
+          }
+        ]
       }
     },
     {
@@ -320,7 +322,7 @@
       "fieldConfig": {
         "defaults": {
           "unit": "percent",
-          "decimals": 2,
+          "decimals": 0,
           "min": 0,
           "max": 100,
           "thresholds": {
@@ -331,15 +333,19 @@
                 "color": "red"
               },
               {
-                "value": 80,
+                "value": 25,
                 "color": "orange"
               },
               {
-                "value": 90,
+                "value": 50,
                 "color": "yellow"
               },
               {
-                "value": 95,
+                "value": 75,
+                "color": "light-green"
+              },
+              {
+                "value": 100,
                 "color": "green"
               }
             ]
@@ -385,7 +391,7 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
+          "unit": "none",
           "decimals": 0,
           "color": {
             "mode": "palette-classic"

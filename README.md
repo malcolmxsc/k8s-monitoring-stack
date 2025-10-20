@@ -230,14 +230,14 @@ This project ships a single “LLM Model Reliability (Prometheus)” dashboard. 
 - Errors by Region (range) — Prometheus
   - `sum(increase(llm_errors_total[$__range])) by (region)`
 
-- Top Errors by Model (range) — Prometheus (bar gauge)
-  - `topk(8, sum(increase(llm_errors_total[$__range])) by (model, error_type))`
+- Top Errors by Model (range) — Prometheus (table)
+  - `topk by (model) (1, sum(increase(llm_errors_total[$__range])) by (model, error_type))`
 
 - Request Success Rate — Prometheus (gauge)
-  - `sum(increase(llm_prompts_success_total[$__range])) / (sum(increase(llm_prompts_success_total[$__range])) + sum(increase(llm_errors_total[$__range]))) * 100`
+  - `sum(increase(llm_prompts_success_total[$__range])) / (sum(increase(llm_prompts_success_total[$__range])) + sum(increase(llm_errors_total[$__range]))) * 100` (rounded to whole %, threshold markers at 25/50/75/100)
 
 - Total Requests (range) — Prometheus (stat)
-  - `sum(increase(llm_prompts_success_total[$__range])) + sum(increase(llm_errors_total[$__range]))`
+  - `sum(increase(llm_prompts_success_total[$__range])) + sum(increase(llm_errors_total[$__range]))` (full counts, no `k` abbreviations)
 
 - Recent Error Logs — Loki
   - JSON logs from the app with MDC fields (traceId, spanId, model, region, endpoint, latency).
