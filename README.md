@@ -87,11 +87,9 @@ curl -u demo:observability! -X POST http://<LOS_APP_LB_IP>:8080/generate \
 
 ## 🎬 Demo Videos
 
-Watch these short demos to see the observability stack in action. Click the thumbnails or links below to view:
+Watch these short demos to see the observability stack in action. **Note:** Click the links below to download and view the videos locally, as GitHub doesn't support embedded video playback in README files.
 
-### 🔸 API Smoke Test (~30 seconds)
-
-https://github.com/malcolmxsc/observability-sandbox/assets/demo-clips/api-smoke-test.mp4
+### 🔸 [API Smoke Test](./demo-clips/api-smoke-test.mp4) (~30 seconds)
 
 **What you'll see:** A live `curl` command hitting the `POST /generate` endpoint, showcasing the JSON response with trace IDs, span IDs, model information, and latency metrics that power the observability dashboards.
 
@@ -102,9 +100,7 @@ https://github.com/malcolmxsc/observability-sandbox/assets/demo-clips/api-smoke-
 
 ---
 
-### 📊 Grafana Overview (~45 seconds)
-
-https://github.com/malcolmxsc/observability-sandbox/assets/demo-clips/grafana-overview.mp4
+### 📊 [Grafana Overview](./demo-clips/grafana-overview.mp4) (~45 seconds)
 
 **What you'll see:** A complete tour of the "LLM Model Reliability (Prometheus)" dashboard, walking through key panels including model error rates, total request counts, success rate gauge, and error breakdowns by type and region.
 
@@ -116,9 +112,7 @@ https://github.com/malcolmxsc/observability-sandbox/assets/demo-clips/grafana-ov
 
 ---
 
-### 🔍 Trace Drill-Down (~45 seconds)
-
-https://github.com/malcolmxsc/observability-sandbox/assets/demo-clips/trace-drill-down.mp4
+### 🔍 [Trace Drill-Down](./demo-clips/trace-drill-down.mp4) (~45 seconds)
 
 **What you'll see:** Starting from the "Recent Error Logs" panel in Grafana, clicking through to Tempo to view a complete distributed trace, inspecting individual spans, and connecting the trace back to the originating log entry.
 
@@ -130,9 +124,7 @@ https://github.com/malcolmxsc/observability-sandbox/assets/demo-clips/trace-dril
 
 ---
 
-### 🔗 Traces ↔ Logs Context (~30 seconds)
-
-https://github.com/malcolmxsc/observability-sandbox/assets/demo-clips/traces-context.mp4
+### 🔗 [Traces ↔ Logs Context](./demo-clips/traces-context.mp4) (~30 seconds)
 
 **What you'll see:** The bidirectional relationship between Tempo (traces) and Loki (logs), demonstrating how to pivot from a trace back to related log entries and vice versa, highlighting the power of unified observability.
 
@@ -389,9 +381,13 @@ curl http://localhost:8080/actuator/health
 curl http://localhost:9090/api/v1/targets | jq
 
 ## 🔒 Security
+
+**Security Note:** The demo password (`observability!`) visible in git history is intentional and used only for this demonstration project. No production credentials, GKE cluster keys, or real API tokens are exposed in this repository.
+
 - App endpoints are protected with HTTP Basic (demo / observability! by default).
 - Prometheus scraping on `/actuator/prometheus` is open to the cluster.
 - Credentials are stored in the K8s Secret `los-app-demo-credentials`; rotate by editing the Secret and restarting the Deployment.
+- **Never use the demo credentials for production systems.**
 
 ## 🧹 Housekeeping
 - Ephemeral docs (internal change logs, fix summaries) are ignored via `.gitignore` to keep the repo presentation‑ready.
