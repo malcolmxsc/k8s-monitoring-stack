@@ -87,9 +87,11 @@ curl -u demo:observability! -X POST http://<LOS_APP_LB_IP>:8080/generate \
 
 ## 🎬 Demo Videos
 
-Watch these short demos to see the observability stack in action. **Note:** Click the links below to download and view the videos locally, as GitHub doesn't support embedded video playback in README files.
+Watch these short demos to see the observability stack in action:
 
-### 🔸 [API Smoke Test](./demo-clips/api-smoke-test.mp4) (~30 seconds)
+### 🔸 API Smoke Test (~30 seconds)
+
+https://github.com/user-attachments/assets/7a438623-cb46-4f2d-bcaa-6154c0afe2a2
 
 **What you'll see:** A live `curl` command hitting the `POST /generate` endpoint, showcasing the JSON response with trace IDs, span IDs, model information, and latency metrics that power the observability dashboards.
 
@@ -100,7 +102,9 @@ Watch these short demos to see the observability stack in action. **Note:** Clic
 
 ---
 
-### 📊 [Grafana Overview](./demo-clips/grafana-overview.mp4) (~45 seconds)
+### 📊 Grafana Overview (~45 seconds)
+
+https://github.com/user-attachments/assets/8655242a-c17b-4bd9-98f4-2aacb02a08c7
 
 **What you'll see:** A complete tour of the "LLM Model Reliability (Prometheus)" dashboard, walking through key panels including model error rates, total request counts, success rate gauge, and error breakdowns by type and region.
 
@@ -112,7 +116,9 @@ Watch these short demos to see the observability stack in action. **Note:** Clic
 
 ---
 
-### 🔍 [Trace Drill-Down](./demo-clips/trace-drill-down.mp4) (~45 seconds)
+### 🔍 Trace Drill-Down (~45 seconds)
+
+https://github.com/user-attachments/assets/f6406f2b-f5f8-46e3-80ea-facb8fca12b3
 
 **What you'll see:** Starting from the "Recent Error Logs" panel in Grafana, clicking through to Tempo to view a complete distributed trace, inspecting individual spans, and connecting the trace back to the originating log entry.
 
@@ -124,7 +130,9 @@ Watch these short demos to see the observability stack in action. **Note:** Clic
 
 ---
 
-### 🔗 [Traces ↔ Logs Context](./demo-clips/traces-context.mp4) (~30 seconds)
+### 🔗 Traces ↔ Logs Context (~30 seconds)
+
+https://github.com/user-attachments/assets/d390186f-201c-41fb-9e97-cf340070bfa9
 
 **What you'll see:** The bidirectional relationship between Tempo (traces) and Loki (logs), demonstrating how to pivot from a trace back to related log entries and vice versa, highlighting the power of unified observability.
 
