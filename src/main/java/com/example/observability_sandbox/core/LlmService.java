@@ -94,10 +94,12 @@ public class LlmService {
 
             // Increment success counter with model tag
             String modelTag = effectiveModel != null ? effectiveModel : "unknown";
+            String regionTag = region != null ? region : "unknown";
             
             // Successful prompts by model (for dashboard)
             registry.counter("llm_prompts_success_total",
                     "model", modelTag,
+                    "region", regionTag,
                     SERVICE_TAG, SERVICE_NAME)
                     .increment();
             
@@ -118,15 +120,15 @@ public class LlmService {
      * These elevated rates (15-35%) are intentionally high to showcase observability features.
      */
     private double getModelErrorRate(String model) {
-        if (model == null) return 0.20;  // 20% error rate for unknown models (demo purposes)
+        if (model == null) return 0.22;  // 22% for unknown (demo purposes)
         return switch (model) {
-            case "gpt-4.0", "gpt-4o" -> 0.15;           // 15% - Most reliable (demo: was 2%)
-            case "claude-3.5-sonnet", "claude-3-opus" -> 0.18;  // 18% (demo: was 3%)
-            case "gemini-2.0-flash" -> 0.22;            // 22% (demo: was 4%)
-            case "gemini-1.5-pro" -> 0.25;              // 25% (demo: was 6%)
-            case "gpt-3.5-turbo" -> 0.30;               // 30% - Less reliable (demo: was 8%)
-            case "llama-3.3-70b" -> 0.35;               // 35% - Open source, higher error rate (demo: was 12%)
-            default -> 0.20;                            // 20% default (demo: was 5%)
+            case "gpt-4.0", "gpt-4o" -> 0.18;           // Slightly higher for testing
+            case "claude-3.5-sonnet", "claude-3-opus" -> 0.21;
+            case "gemini-2.0-flash" -> 0.27;
+            case "gemini-1.5-pro" -> 0.30;
+            case "gpt-3.5-turbo" -> 0.34;
+            case "llama-3.3-70b" -> 0.38;
+            default -> 0.22;
         };
     }
 
@@ -148,9 +150,11 @@ public class LlmService {
      */
     private void incrementErrorCounter(String model, String errorType) {
         String modelTag = model != null ? model : "unknown";
+        String regionTag = MDC.get("region") != null ? MDC.get("region") : "unknown";
         registry.counter("llm_errors_total",
                 "model", modelTag,
                 "error_type", errorType,
+                "region", regionTag,
                 SERVICE_TAG, SERVICE_NAME)
                 .increment();
     }

@@ -81,32 +81,129 @@ kubectl rollout restart deployment/grafana -n observability-sandbox
 kubectl get svc los-app -n observability-sandbox
 curl -u demo:observability! -X POST http://<LOS_APP_LB_IP>:8080/generate \
   -H "Content-Type: application/json" \
-  -d '{"prompt":"hello"}'
+  -d '{"prompt":"demo observability test","userId":"demo-observability"}'
 ```
+> Tip: You can also send the identifier via the `X-User-Id` header. The service prefers the header, but will fall back to the JSON body if a load balancer strips custom headers.
 
-### Interview Quick Start (clickable)
+## 🎬 Demo Videos
 
-- App base URL: [http://35.223.226.27/](http://35.223.226.27/)
-- Health check: [http://35.223.226.27//actuator/health](http://35.223.226.27//actuator/health)
+Watch these short demos to see the observability stack in action. Click the thumbnails or links below to view:
 
-Auth for app endpoints: `demo / observability!`
+### 🔸 API Smoke Test (~30 seconds)
 
-Run a one‑shot request (ready to copy/paste):
+https://github.com/malcolmxsc/observability-sandbox/assets/demo-clips/api-smoke-test.mp4
 
-```bash
-curl -s -u demo:observability! \
-  -X POST "http://35.223.226.27//generate" \
-  -H "Content-Type: application/json" \
-  -d '{"prompt":"hello"}' | jq .
-```
+**What you'll see:** A live `curl` command hitting the `POST /generate` endpoint, showcasing the JSON response with trace IDs, span IDs, model information, and latency metrics that power the observability dashboards.
 
-Generate safe demo traffic:
+**Key takeaways:**
+- Real-time API response structure with embedded trace context
+- How trace/span IDs connect requests to distributed traces
+- JSON payload format used by the monitoring stack
 
-```bash
-BASE_URL="http://35.223.226.27/" \
-APP_USER="demo" APP_PASSWORD="observability!" \
-./load-generator.sh --pattern steady --base-url "$BASE_URL" --skip-health-check
-```
+---
+
+### 📊 Grafana Overview (~45 seconds)
+
+https://github.com/malcolmxsc/observability-sandbox/assets/demo-clips/grafana-overview.mp4
+
+**What you'll see:** A complete tour of the "LLM Model Reliability (Prometheus)" dashboard, walking through key panels including model error rates, total request counts, success rate gauge, and error breakdowns by type and region.
+
+**Key takeaways:**
+- Visual representation of SLO metrics and KPIs
+- How Prometheus queries power real-time dashboard panels
+- Multi-dimensional analysis (by model, region, and error type)
+- Success rate gauge with threshold indicators
+
+---
+
+### 🔍 Trace Drill-Down (~45 seconds)
+
+https://github.com/malcolmxsc/observability-sandbox/assets/demo-clips/trace-drill-down.mp4
+
+**What you'll see:** Starting from the "Recent Error Logs" panel in Grafana, clicking through to Tempo to view a complete distributed trace, inspecting individual spans, and connecting the trace back to the originating log entry.
+
+**Key takeaways:**
+- End-to-end request flow visualization with span waterfall
+- How logs link directly to traces via trace IDs
+- Span details including timing, tags, and attributes
+- Root cause analysis workflow from error to trace
+
+---
+
+### 🔗 Traces ↔ Logs Context (~30 seconds)
+
+https://github.com/malcolmxsc/observability-sandbox/assets/demo-clips/traces-context.mp4
+
+**What you'll see:** The bidirectional relationship between Tempo (traces) and Loki (logs), demonstrating how to pivot from a trace back to related log entries and vice versa, highlighting the power of unified observability.
+
+**Key takeaways:**
+- Seamless navigation between traces and logs
+- How MDC context enriches log entries with trace information
+- Correlating distributed traces with structured logs
+- Complete observability story from metrics → logs → traces
+
+---
+
+### 💡 Using These Demos
+
+These videos demonstrate:
+- **Full observability pipeline**: From application instrumentation to visualization
+- **Three pillars integration**: Metrics (Prometheus), Logs (Loki), and Traces (Tempo)
+- **Real-world troubleshooting**: How to investigate errors across the entire stack
+- **Production-ready patterns**: SLO tracking, structured logging, and distributed tracing
+
+### Generate traffic (safe defaults)
+
+## 🎬 Demo Clips
+
+<details open>
+  <summary><strong>API Smoke Test</strong> (roughly 30s)</summary>
+  <p>This clip shows the curl smoke test hitting `POST /generate`, highlighting the JSON payload with trace/span IDs and latency that feed the dashboards.</p>
+  <video controls width="720">
+    <source src="demo-clips/api-smoke-test.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+</details>
+
+<details open>
+  <summary><strong>Grafana Overview</strong> (≈45s)</summary>
+  <p>Tour of the “LLM Error Overview (Prometheus)” dashboard: model error rates, request totals, and success gauge. Sets the stage before drilling down.</p>
+  <video controls width="720">
+    <source src="demo-clips/grafana-overview.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+</details>
+
+<details open>
+  <summary><strong>Trace Drill Down</strong> (≈45s)</summary>
+  <p>From Recent Error Logs into Tempo, following a trace, inspecting spans, and connecting the failure back to the log entry.</p>
+  <video controls width="720">
+    <source src="demo-clips/trace-drill-down.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+</details>
+
+<details open>
+  <summary><strong>Traces ↔ Logs Context</strong> (≈30s)</summary>
+  <p>Shows how Tempo and Loki link together—pivot from the trace back to logs to highlight end-to-end observability.</p>
+  <video controls width="720">
+    <source src="demo-clips/traces-context.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+</details>
+
+### Interview Walkthrough (screen recording checklist)
+
+Instead of sharing a live URL, record a short demo reel. Aim for **20‑40 seconds per clip** and cover:
+
+- **API smoke test (20s):** Run the `/generate` `curl` command and highlight the JSON response.
+- **Load generator (30s):** Execute `./load-generator.sh --pattern steady` to show mixed successes/errors.
+- **Grafana overview (45s):** Walk through each panel on the “LLM Error Overview (Prometheus)” dashboard.
+- **Trace drill-down (45s):** From “Recent Error Logs,” click the `Trace` link to open Tempo and narrate the spans.
+- **Logs ↔ traces context (30s):** Show how the trace links back to the originating log lines.
+- **Prometheus Explore (30s):** Run a Prometheus query (e.g., `sum(increase(llm_errors_total[$__range])) by (model)`) and relate it to the dashboard chart.
+
+You can embed the finished reel or individual clips in your README or interview prep doc.
 
 ### Generate traffic (safe defaults)
 ```bash
@@ -120,7 +217,7 @@ APP_USER="demo" APP_PASSWORD="observability!" \
 | Service | URL | Credentials | Purpose |
 |---------|-----|-------------|---------|
 | **Application** | http://<LOS_APP_LB_IP>:8080 | Basic Auth (demo/observability!) | Spring Boot REST API |
-| **Grafana** | [http://35.223.226.27/](http://35.223.226.27/) | your Grafana creds | Dashboards & visualization |
+| **Grafana** | `Provided during interview` | Viewer/Editor creds shared privately | Dashboards & visualization |
 | **Prometheus** | cluster service | - | Metrics & alerts |
 | **Loki** | cluster service | - | Log aggregation (API) |
 | **Tempo** | cluster service | - | Distributed tracing (API) |
@@ -249,7 +346,7 @@ This project ships a single “LLM Model Reliability (Prometheus)” dashboard. 
 
 Got “No data”? Run the load generator for a minute:
 ```bash
-BASE_URL="http://35.223.226.27/" \
+BASE_URL="http://35.223.226.27" \
 APP_USER="demo" APP_PASSWORD="observability!" \
 ./load-generator.sh --pattern steady --base-url "$BASE_URL" --skip-health-check
 ```

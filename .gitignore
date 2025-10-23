@@ -25,8 +25,8 @@ bin/
 gitleaks-report.json
 observability-sandbox/
 
-# Local helper scripts (they're untracked by default)
-scripts/
+# Local helper scripts (if you prefer them untracked, uncomment)
+# scripts/
 *.ipr
 out/
 !**/src/main/**/out/
@@ -77,7 +77,8 @@ SLO_ALERTS.md
 observability/tempo/data/
 
 # Kubernetes secrets (keep example file only)
-k8s/secret-demo-credentials.example.yaml
+k8s/secret-demo-credentials.yaml
+k8s/secret-demo-credentials.yaml
 
 # Nested copy of the repo (redundant)
 /observability-sandbox/
