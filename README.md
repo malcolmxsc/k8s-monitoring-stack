@@ -9,7 +9,7 @@ A production-ready observability stack demonstrating distributed tracing, struct
 │  Spring Boot    │
 │  Application    │──┐
 │  (Port 8080)    │  │
-└─────────────────┘  │
+└───────────────┘  │
                      │
          ┌───────────┴─────────────┬──────────────┬─────────────┐
          │                         │              │             │
@@ -48,9 +48,9 @@ Create the application Secret (choose one):
 
 - Quick one‑liner (recommended for demos):
 ```bash
-kubectl create secret generic los-app-demo-credentials \
-  -n observability-sandbox \
-  --from-literal=app-user=demo \
+kubectl create secret generic los-app-demo-credentials \ 
+  -n observability-sandbox \ 
+  --from-literal=app-user=demo \ 
   --from-literal=app-password='observability!'
 ```
 
@@ -79,8 +79,8 @@ kubectl rollout restart deployment/grafana -n observability-sandbox
 - The app listens on port 8080 via the `los-app` Service (LoadBalancer in the sample). Retrieve the external IP and test:
 ```bash
 kubectl get svc los-app -n observability-sandbox
-curl -u demo:observability! -X POST http://<LOS_APP_LB_IP>:8080/generate \
-  -H "Content-Type: application/json" \
+curl -u demo:observability! -X POST http://<LOS_APP_LB_IP>:8080/generate \ 
+  -H "Content-Type: application/json" \ 
   -d '{"prompt":"demo observability test","userId":"demo-observability"}'
 ```
 > Tip: You can also send the identifier via the `X-User-Id` header. The service prefers the header, but will fall back to the JSON body if a load balancer strips custom headers.
@@ -93,7 +93,7 @@ Watch these short demos to see the observability stack in action:
 
 https://github.com/user-attachments/assets/7a438623-cb46-4f2d-bcaa-6154c0afe2a2
 
-**What you'll see:** A live `curl` command hitting the `POST /generate` endpoint, showcasing the JSON response with trace IDs, span IDs, model information, and latency metrics that power the observability dashboards.
+**What you'll see:** A live `curl` command hitting the `POST /generate` endpoint, showcasing the JSON response with trace IDs, span IDs, model information, and latency metrics that power the obser[...] 
 
 **Key takeaways:**
 - Real-time API response structure with embedded trace context
@@ -106,7 +106,7 @@ https://github.com/user-attachments/assets/7a438623-cb46-4f2d-bcaa-6154c0afe2a2
 
 https://github.com/user-attachments/assets/8655242a-c17b-4bd9-98f4-2aacb02a08c7
 
-**What you'll see:** A complete tour of the "LLM Model Reliability (Prometheus)" dashboard, walking through key panels including model error rates, total request counts, success rate gauge, and error breakdowns by type and region.
+**What you'll see:** A complete tour of the "LLM Model Reliability (Prometheus)" dashboard, walking through key panels including model error rates, total request counts, success rate gauge, and e[...] 
 
 **Key takeaways:**
 - Visual representation of SLO metrics and KPIs
@@ -120,7 +120,7 @@ https://github.com/user-attachments/assets/8655242a-c17b-4bd9-98f4-2aacb02a08c7
 
 https://github.com/user-attachments/assets/f6406f2b-f5f8-46e3-80ea-facb8fca12b3
 
-**What you'll see:** Starting from the "Recent Error Logs" panel in Grafana, clicking through to Tempo to view a complete distributed trace, inspecting individual spans, and connecting the trace back to the originating log entry.
+**What you'll see:** Starting from the "Recent Error Logs" panel in Grafana, clicking through to Tempo to view a complete distributed trace, inspecting individual spans, and connecting the trace [...] 
 
 **Key takeaways:**
 - End-to-end request flow visualization with span waterfall
@@ -134,7 +134,7 @@ https://github.com/user-attachments/assets/f6406f2b-f5f8-46e3-80ea-facb8fca12b3
 
 https://github.com/user-attachments/assets/d390186f-201c-41fb-9e97-cf340070bfa9
 
-**What you'll see:** The bidirectional relationship between Tempo (traces) and Loki (logs), demonstrating how to pivot from a trace back to related log entries and vice versa, highlighting the power of unified observability.
+**What you'll see:** The bidirectional relationship between Tempo (traces) and Loki (logs), demonstrating how to pivot from a trace back to related log entries and vice versa, highlighting the po[...] 
 
 **Key takeaways:**
 - Seamless navigation between traces and logs
@@ -153,7 +153,6 @@ These videos demonstrate:
 - **Production-ready patterns**: SLO tracking, structured logging, and distributed tracing
 
 ### Generate traffic (safe defaults)
-
 ## 🎬 Demo Clips
 
 <details open>
@@ -277,8 +276,8 @@ These match the dashboard panels and respect the Grafana time picker via `$__ran
 ```promql
 # Model error rate per model
 100 * (sum(increase(llm_errors_total[$__range])) by (model))
-    / (sum(increase(llm_errors_total[$__range])) by (model)
-      + sum(increase(llm_prompts_success_total[$__range])) by (model))
+   / (sum(increase(llm_errors_total[$__range])) by (model)
+     + sum(increase(llm_prompts_success_total[$__range])) by (model))
 
 # Total errors by type
 sum(increase(llm_errors_total[$__range])) by (error_type)
@@ -331,7 +330,7 @@ This project ships a single “LLM Model Reliability (Prometheus)” dashboard. 
   - `topk by (model) (1, sum(increase(llm_errors_total[$__range])) by (model, error_type))`
 
 - Request Success Rate — Prometheus (gauge)
-  - `sum(increase(llm_prompts_success_total[$__range])) / (sum(increase(llm_prompts_success_total[$__range])) + sum(increase(llm_errors_total[$__range]))) * 100` (rounded to whole %, threshold markers at 25/50/75/100)
+  - `sum(increase(llm_prompts_success_total[$__range])) / (sum(increase(llm_prompts_success_total[$__range])) + sum(increase(llm_errors_total[$__range]))) * 100` (rounded to whole %, threshold ma[...] 
 
 - Total Requests (range) — Prometheus (stat)
   - `sum(increase(llm_prompts_success_total[$__range])) + sum(increase(llm_errors_total[$__range]))` (full counts, no `k` abbreviations)
@@ -359,16 +358,16 @@ See [SLOs and Alerting](docs/runbooks/slo-and-alerts.md) for runbooks covering t
 ```bash
 # Quick test
 for i in {1..20}; do 
-  curl -X POST http://localhost:8080/generate \
-    -H "Content-Type: application/json" \
+  curl -X POST http://localhost:8080/generate \ 
+    -H "Content-Type: application/json" \ 
     -d '{"userId":"user'$i'","region":"us-east"}' 
   sleep 0.5
 done
 
 # Continuous load
-watch -n 1 'curl -X POST http://localhost:8080/generate \
-  -H "Content-Type: application/json" \
-  -d "{\"userId\":\"user$RANDOM\",\"region\":\"us-east\"}"'
+watch -n 1 'curl -X POST http://localhost:8080/generate \ 
+  -H "Content-Type: application/json" \ 
+  -d "{"userId":"user$RANDOM","region":"us-east"}"'
 ```
 
 ### View Application Logs
@@ -387,10 +386,9 @@ curl http://localhost:8080/actuator/health
 
 # Prometheus targets
 curl http://localhost:9090/api/v1/targets | jq
-
 ## 🔒 Security
 
-**Security Note:** The demo password (`observability!`) visible in git history is intentional and used only for this demonstration project. No production credentials, GKE cluster keys, or real API tokens are exposed in this repository.
+**Security Note:** The demo password (`observability!`) visible in git history is intentional and used only for this demonstration project. No production credentials, GKE cluster keys, or real AP[...] 
 
 - App endpoints are protected with HTTP Basic (demo / observability! by default).
 - Prometheus scraping on `/actuator/prometheus` is open to the cluster.
@@ -534,4 +532,4 @@ This is a learning/portfolio project. Feel free to:
 
 ---
 
-**Built with ❤️ for learning modern observability practices**  
+**Built with ❤️ for learning modern observability practices**
