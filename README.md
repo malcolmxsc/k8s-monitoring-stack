@@ -9,7 +9,7 @@ A production-ready observability stack demonstrating distributed tracing, struct
 │  Spring Boot    │
 │  Application    │──┐
 │  (Port 8080)    │  │
-└───────────────┘  │
+└─────────────────┘  │
                      │
          ┌───────────┴─────────────┬──────────────┬─────────────┐
          │                         │              │             │
@@ -48,9 +48,9 @@ Create the application Secret (choose one):
 
 - Quick one‑liner (recommended for demos):
 ```bash
-kubectl create secret generic los-app-demo-credentials \ 
-  -n observability-sandbox \ 
-  --from-literal=app-user=demo \ 
+kubectl create secret generic los-app-demo-credentials \
+  -n observability-sandbox \
+  --from-literal=app-user=demo \
   --from-literal=app-password='observability!'
 ```
 
@@ -79,8 +79,8 @@ kubectl rollout restart deployment/grafana -n observability-sandbox
 - The app listens on port 8080 via the `los-app` Service (LoadBalancer in the sample). Retrieve the external IP and test:
 ```bash
 kubectl get svc los-app -n observability-sandbox
-curl -u demo:observability! -X POST http://<LOS_APP_LB_IP>:8080/generate \ 
-  -H "Content-Type: application/json" \ 
+curl -u demo:observability! -X POST http://<LOS_APP_LB_IP>:8080/generate \
+  -H "Content-Type: application/json" \
   -d '{"prompt":"demo observability test","userId":"demo-observability"}'
 ```
 > Tip: You can also send the identifier via the `X-User-Id` header. The service prefers the header, but will fall back to the JSON body if a load balancer strips custom headers.
@@ -153,63 +153,6 @@ These videos demonstrate:
 - **Production-ready patterns**: SLO tracking, structured logging, and distributed tracing
 
 ### Generate traffic (safe defaults)
-## 🎬 Demo Clips
-
-<details open>
-  <summary><strong>API Smoke Test</strong> (roughly 30s)</summary>
-  <p>This clip shows the curl smoke test hitting `POST /generate`, highlighting the JSON payload with trace/span IDs and latency that feed the dashboards.</p>
-  <video controls width="720">
-    <source src="demo-clips/api-smoke-test.mp4" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
-</details>
-
-<details open>
-  <summary><strong>Grafana Overview</strong> (≈45s)</summary>
-  <p>Tour of the “LLM Error Overview (Prometheus)” dashboard: model error rates, request totals, and success gauge. Sets the stage before drilling down.</p>
-  <video controls width="720">
-    <source src="demo-clips/grafana-overview.mp4" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
-</details>
-
-<details open>
-  <summary><strong>Trace Drill Down</strong> (≈45s)</summary>
-  <p>From Recent Error Logs into Tempo, following a trace, inspecting spans, and connecting the failure back to the log entry.</p>
-  <video controls width="720">
-    <source src="demo-clips/trace-drill-down.mp4" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
-</details>
-
-<details open>
-  <summary><strong>Traces ↔ Logs Context</strong> (≈30s)</summary>
-  <p>Shows how Tempo and Loki link together—pivot from the trace back to logs to highlight end-to-end observability.</p>
-  <video controls width="720">
-    <source src="demo-clips/traces-context.mp4" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
-</details>
-
-### Interview Walkthrough (screen recording checklist)
-
-Instead of sharing a live URL, record a short demo reel. Aim for **20‑40 seconds per clip** and cover:
-
-- **API smoke test (20s):** Run the `/generate` `curl` command and highlight the JSON response.
-- **Load generator (30s):** Execute `./load-generator.sh --pattern steady` to show mixed successes/errors.
-- **Grafana overview (45s):** Walk through each panel on the “LLM Error Overview (Prometheus)” dashboard.
-- **Trace drill-down (45s):** From “Recent Error Logs,” click the `Trace` link to open Tempo and narrate the spans.
-- **Logs ↔ traces context (30s):** Show how the trace links back to the originating log lines.
-- **Prometheus Explore (30s):** Run a Prometheus query (e.g., `sum(increase(llm_errors_total[$__range])) by (model)`) and relate it to the dashboard chart.
-
-You can embed the finished reel or individual clips in your README or interview prep doc.
-
-### Generate traffic (safe defaults)
-```bash
-BASE_URL="http://<LOS_APP_LB_IP>:8080" \
-APP_USER="demo" APP_PASSWORD="observability!" \
-./load-generator.sh --pattern steady --base-url "$BASE_URL"
-```
 
 ## 📊 Access Points
 
@@ -358,15 +301,15 @@ See [SLOs and Alerting](docs/runbooks/slo-and-alerts.md) for runbooks covering t
 ```bash
 # Quick test
 for i in {1..20}; do 
-  curl -X POST http://localhost:8080/generate \ 
-    -H "Content-Type: application/json" \ 
+  curl -X POST http://localhost:8080/generate \
+    -H "Content-Type: application/json" \
     -d '{"userId":"user'$i'","region":"us-east"}' 
   sleep 0.5
 done
 
 # Continuous load
-watch -n 1 'curl -X POST http://localhost:8080/generate \ 
-  -H "Content-Type: application/json" \ 
+watch -n 1 'curl -X POST http://localhost:8080/generate \
+  -H "Content-Type: application/json" \
   -d "{"userId":"user$RANDOM","region":"us-east"}"'
 ```
 
@@ -386,6 +329,8 @@ curl http://localhost:8080/actuator/health
 
 # Prometheus targets
 curl http://localhost:9090/api/v1/targets | jq
+```
+
 ## 🔒 Security
 
 **Security Note:** The demo password (`observability!`) visible in git history is intentional and used only for this demonstration project. No production credentials, GKE cluster keys, or real AP[...] 
@@ -400,7 +345,6 @@ curl http://localhost:9090/api/v1/targets | jq
 
 # Check if services are up
 docker-compose ps
-```
 
 ## 🏗️ Project Structure
 
