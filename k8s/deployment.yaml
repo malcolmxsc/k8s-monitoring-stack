@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: los-app
-          image: ghcr.io/your-org/observability-sandbox:latest
+          image: ghcr.io/malcolmxsc/observability-sandbox:latest
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
