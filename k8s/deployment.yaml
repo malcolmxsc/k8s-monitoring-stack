@@ -18,6 +18,8 @@ spec:
         app: los-app
         app.kubernetes.io/name: los-app
     spec:
+      imagePullSecrets:
+        - name: ghcr-credentials
       containers:
         - name: los-app
           image: ghcr.io/malcolmxsc/observability-sandbox:latest
