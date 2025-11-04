@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: los-app
+  namespace: observability-sandbox
+  labels:
+    app: los-app
+    app.kubernetes.io/name: los-app
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: los-app
+  template:
+    metadata:
+      labels:
+        app: los-app
+        app.kubernetes.io/name: los-app
+    spec:
+      containers:
+        - name: los-app
+          image: ghcr.io/your-org/observability-sandbox:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: LOGGING_CONFIG
+              value: /config/logback-spring.xml
+            - name: MANAGEMENT_OTLP_TRACING_ENDPOINT
+              value: http://alloy.observability-sandbox.svc.cluster.local:4318/v1/traces
+            - name: APP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: los-app-demo-credentials
+                  key: app-user
+            - name: APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: los-app-demo-credentials
+                  key: app-password
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 2
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: logback-config
+              mountPath: /config/logback-spring.xml
+              subPath: logback-spring.xml
+            - name: app-logs
+              mountPath: /var/log/los
+      volumes:
+        - name: logback-config
+          configMap:
+            name: los-app-logback-config
+            items:
+              - key: logback-spring.xml
+                path: logback-spring.xml
+        - name: app-logs
+          emptyDir: {}

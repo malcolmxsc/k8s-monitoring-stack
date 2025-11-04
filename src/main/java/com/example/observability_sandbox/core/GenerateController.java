@@ -33,6 +33,7 @@ public class GenerateController {
         String prompt = String.valueOf(payload.getOrDefault("prompt", "hello"));
         String endpoint = "/generate";
         String payloadUser = payload.get("userId");
+        String payloadRegion = payload.get("region");
         String effectiveUser;
         if (userId != null && !userId.isBlank()) {
             effectiveUser = userId;
@@ -41,7 +42,14 @@ public class GenerateController {
         } else {
             effectiveUser = "demo-user";
         }
-        String effectiveRegion = (region != null && !region.isBlank()) ? region : "us-west-1";
+        String effectiveRegion;
+        if (region != null && !region.isBlank()) {
+            effectiveRegion = region;
+        } else if (payloadRegion != null && !payloadRegion.isBlank()) {
+            effectiveRegion = payloadRegion;
+        } else {
+            effectiveRegion = "us-west-1";
+        }
         
         // Check model from header first, then from payload, then use default
         String payloadModel = payload.get("model");

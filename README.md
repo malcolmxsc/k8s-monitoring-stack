@@ -67,6 +67,8 @@ kubectl apply -f k8s/service.yaml
 kubectl apply -f k8s/servicemonitor.yaml
 ```
 
+> **Heads-up:** The `k8s/deployment.yaml` image reference is a placeholder. Build the Spring Boot container (`docker build -t <registry>/observability-sandbox:latest .`), push it to an image registry your cluster can reach, and update the manifest before applying. The manifest mounts `k8s/logback-configmap.yaml` so logs land at `/var/log/los/app.log` for Promtail to scrape.
+
 3) Grafana provisioning (optional if you have an existing Grafana)
 ```bash
 kubectl apply -f k8s/grafana-datasource-configmap.yaml
@@ -84,6 +86,10 @@ curl -u demo:observability! -X POST http://<LOS_APP_LB_IP>:8080/generate \
   -d '{"prompt":"demo observability test","userId":"demo-observability"}'
 ```
 > Tip: You can also send the identifier via the `X-User-Id` header. The service prefers the header, but will fall back to the JSON body if a load balancer strips custom headers.
+
+### Local Docker Compose (unchanged)
+
+If you are just demoing locally, `docker compose up -d` still launches the same stack (Spring Boot app, Alloy, Prometheus, Loki, Tempo, Grafana). The Kubernetes manifests are additive—use them when you want to talk through the cluster story, but you can continue to rely on Compose for quick smoke tests.
 
 ## 🎬 Demo Videos
 

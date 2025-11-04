@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: los-app-logback-config
+  namespace: observability-sandbox
+data:
+  logback-spring.xml: |-
+    <configuration>
+      <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+          <customFields>{"service":"observability-sandbox"}</customFields>
+          <timeZone>UTC</timeZone>
+          <fieldNames>
+            <timestamp>@timestamp</timestamp>
+          </fieldNames>
+          <includeMdc>true</includeMdc>
+          <includeContext>false</includeContext>
+        </encoder>
+      </appender>
+
+      <appender name="JSON_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>/var/log/los/app.log</file>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+          <customFields>{"service":"observability-sandbox"}</customFields>
+          <timeZone>UTC</timeZone>
+          <fieldNames>
+            <timestamp>@timestamp</timestamp>
+          </fieldNames>
+          <includeMdc>true</includeMdc>
+          <includeContext>false</includeContext>
+        </encoder>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+          <fileNamePattern>/var/log/los/app-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+          <maxFileSize>10MB</maxFileSize>
+          <totalSizeCap>1GB</totalSizeCap>
+          <maxHistory>7</maxHistory>
+        </rollingPolicy>
+      </appender>
+
+      <root level="INFO">
+        <appender-ref ref="JSON_CONSOLE"/>
+        <appender-ref ref="JSON_FILE"/>
+      </root>
+    </configuration>

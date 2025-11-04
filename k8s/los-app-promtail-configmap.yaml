@@ -22,7 +22,7 @@ data:
               - localhost
             labels:
               job: los-app
-              __path__: /var/log/pods/app.log
+              __path__: /var/log/los/app.log
 
         pipeline_stages:
           - json:
