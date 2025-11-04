@@ -51,7 +51,9 @@ Create the application Secret (choose one):
 kubectl create secret generic los-app-demo-credentials \
   -n observability-sandbox \
   --from-literal=app-user=demo \
-  --from-literal=app-password='observability!'
+  --from-literal=app-password='observability!' \
+  --from-literal=huggingface-token='<your-hf-token>'
+> Skip the `huggingface-token` line if you are not enabling the evaluation feature.
 ```
 
 - Or from the example manifest (edit password first):
@@ -86,6 +88,30 @@ curl -u demo:observability! -X POST http://<LOS_APP_LB_IP>:8080/generate \
   -d '{"prompt":"demo observability test","userId":"demo-observability"}'
 ```
 > Tip: You can also send the identifier via the `X-User-Id` header. The service prefers the header, but will fall back to the JSON body if a load balancer strips custom headers.
+
+## 🧪 LLM Evaluation Service
+
+The application can now run sentiment evaluations against Hugging Face models and publish metrics/logs alongside request traces.
+
+1. **Provide credentials**
+   - Set `HUGGINGFACE_TOKEN` (hosted inference API token).
+   - Enable the feature with `EVALUATION_ENABLED=true` (env var) or `evaluation.enabled=true` (property).
+   - Docker Compose: `HUGGINGFACE_TOKEN=hf_xxx EVALUATION_ENABLED=true docker compose up -d`.
+   - Kubernetes: update the `los-app-demo-credentials` secret with the token and flip the deployment env var if desired.
+2. **Trigger a batch**
+   ```bash
+   curl -X POST http://<host>:8080/api/evaluations/run
+   curl http://<host>:8080/api/evaluations/last | jq
+   ```
+3. **Observe results**
+   - Metrics: `llm_evaluation_tests_total`, `llm_evaluation_request_duration`, `llm_evaluation_batch_duration`, `llm_evaluation_last_run_total`.
+   - Suggested Grafana pass-rate query:
+     ```promql
+     sum(rate(llm_evaluation_tests_total{result="pass"}[5m]))
+     /
+     sum(rate(llm_evaluation_tests_total[5m])) * 100
+     ```
+   - Logs include `Evaluation PASS/FAIL` entries with prompt IDs for quick Loki filtering (`{job="los-app"} |= "Evaluation PASS"`).
 
 ### Local Docker Compose (unchanged)
 

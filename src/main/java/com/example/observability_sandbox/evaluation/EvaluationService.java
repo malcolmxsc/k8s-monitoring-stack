@@ -5,6 +5,8 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -16,6 +18,8 @@ import org.springframework.core.env.Environment;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
@@ -47,6 +51,9 @@ public class EvaluationService {
     private final AtomicInteger lastRunCount = new AtomicInteger();
     private final AtomicInteger lastRunPasses = new AtomicInteger();
     private final AtomicReference<Instant> lastRunAt = new AtomicReference<>();
+    private final AtomicReference<EvaluationBatchSummary> lastSummary = new AtomicReference<>(
+            new EvaluationBatchSummary(Instant.EPOCH, Duration.ZERO, 0, 0, 0, List.of()));
+    private final AtomicBoolean batchRunning = new AtomicBoolean(false);
 
     public EvaluationService(RestClient.Builder restClientBuilder,
                              EvaluationProperties properties,
@@ -100,57 +107,96 @@ public class EvaluationService {
         return properties.isEnabled();
     }
 
+    public boolean hasToken() {
+        return StringUtils.hasText(authToken);
+    }
+
     public EvaluationBatchSummary runBatch() {
+        return runBatch("manual");
+    }
+
+    public EvaluationBatchSummary runBatch(String trigger) {
         if (!properties.isEnabled()) {
-            log.debug("Evaluation disabled; skipping run");
+            log.debug("Evaluation disabled; skipping run [{}]", trigger);
             return emptySummary();
         }
         if (!StringUtils.hasText(authToken)) {
-            log.warn("No Hugging Face token configured; skipping evaluation run");
+            log.warn("No Hugging Face token configured; skipping evaluation run [{}]", trigger);
+            return emptySummary();
+        }
+        if (!batchRunning.compareAndSet(false, true)) {
+            log.warn("Evaluation already running; skipping overlapping trigger [{}]", trigger);
             return emptySummary();
         }
 
-        Instant start = Instant.now();
-        Sample sample = Timer.start(meterRegistry);
-        List<EvaluationCase> casesToRun = evaluationCases.stream()
-                .limit(Math.max(1, properties.getBatchSize()))
-                .collect(Collectors.toList());
+        try {
+            Instant start = Instant.now();
+            log.info("Starting evaluation batch [{}] cases={} model={}", trigger, properties.getBatchSize(), properties.getModel());
+            Sample sample = Timer.start(meterRegistry);
+            List<EvaluationCase> casesToRun = evaluationCases.stream()
+                    .limit(Math.max(1, properties.getBatchSize()))
+                    .collect(Collectors.toList());
 
-        int passed = 0;
-        int failed = 0;
-        List<EvaluationResult> results = casesToRun.stream()
-                .map(this::executeCase)
-                .peek(result -> {
-                    if (result.passed()) {
-                        passCounter.increment();
-                    } else {
-                        failCounter.increment();
-                    }
-                })
-                .toList();
+            int passed = 0;
+            int failed = 0;
+            List<EvaluationResult> results = casesToRun.stream()
+                    .map(this::executeCase)
+                    .peek(result -> {
+                        if (result.passed()) {
+                            passCounter.increment();
+                        } else {
+                            failCounter.increment();
+                        }
+                    })
+                    .toList();
 
-        for (EvaluationResult result : results) {
-            if (result.passed()) {
-                passed++;
-            } else {
-                failed++;
+            for (EvaluationResult result : results) {
+                if (result.passed()) {
+                    passed++;
+                } else {
+                    failed++;
+                }
             }
+
+            long elapsedNanos = sample.stop(batchTimer);
+            Duration batchDuration = Duration.ofNanos(elapsedNanos);
+            lastRunCount.set(results.size());
+            lastRunPasses.set(passed);
+            lastRunAt.set(start);
+
+            EvaluationBatchSummary summary = new EvaluationBatchSummary(start, batchDuration, results.size(), passed, failed, results);
+            lastSummary.set(summary);
+
+            log.info("Completed evaluation batch [{}]: total={} passed={} failed={} duration={}ms",
+                    trigger, results.size(), passed, failed, batchDuration.toMillis());
+
+            return summary;
+        } finally {
+            batchRunning.set(false);
         }
+    }
 
-        long elapsedNanos = sample.stop(batchTimer);
-        Duration batchDuration = Duration.ofNanos(elapsedNanos);
-        lastRunCount.set(results.size());
-        lastRunPasses.set(passed);
-        lastRunAt.set(start);
+    @Async("evaluationExecutor")
+    public CompletableFuture<EvaluationBatchSummary> runBatchAsync(String trigger) {
+        return CompletableFuture.completedFuture(runBatch(trigger));
+    }
 
-        log.info("Completed evaluation batch: total={} passed={} failed={} duration={}ms",
-                results.size(), passed, failed, batchDuration.toMillis());
-
-        return new EvaluationBatchSummary(start, batchDuration, results.size(), passed, failed, results);
+    @Scheduled(initialDelayString = "#{T(java.time.Duration).parse('${evaluation.interval:PT10M}').toMillis()}",
+            fixedDelayString = "#{T(java.time.Duration).parse('${evaluation.interval:PT10M}').toMillis()}")
+    public void scheduledBatch() {
+        runBatch("scheduled");
     }
 
     public Instant lastRunAt() {
         return lastRunAt.get();
+    }
+
+    public EvaluationBatchSummary lastSummary() {
+        return lastSummary.get();
+    }
+
+    public boolean isRunning() {
+        return batchRunning.get();
     }
 
     private EvaluationBatchSummary emptySummary() {

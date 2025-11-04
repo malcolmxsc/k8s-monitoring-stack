@@ -32,6 +32,8 @@ spec:
               value: /config/logback-spring.xml
             - name: MANAGEMENT_OTLP_TRACING_ENDPOINT
               value: http://alloy.observability-sandbox.svc.cluster.local:4318/v1/traces
+            - name: EVALUATION_ENABLED
+              value: "false"
             - name: APP_USER
               valueFrom:
                 secretKeyRef:
@@ -42,6 +44,11 @@ spec:
                 secretKeyRef:
                   name: los-app-demo-credentials
                   key: app-password
+            - name: HUGGINGFACE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: los-app-demo-credentials
+                  key: huggingface-token
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness

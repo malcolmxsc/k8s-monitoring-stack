@@ -62,13 +62,15 @@ regain context.
     `expected_label`, `actual_label`, `score`).
 - Handle API errors gracefully with retries/backoff.
 
-### Phase 3  Scheduling & API Exposure
+### Phase 3 – Scheduling & API Exposure
 
 - Enable scheduling in `ObservabilitySandboxApplication` (`@EnableScheduling`).
-- Add `@Scheduled` method in `EvaluationService` (or dedicated scheduler bean)
-  triggered by `evaluation.interval`.
-- Optional: Expose `POST /api/evaluations/run` endpoint that submits a batch via
-  `@Async` executor; respond immediately with a run identifier.
+- Add a `@Scheduled` method in `EvaluationService` that respects the
+  `evaluation.interval` ISO duration.
+- Expose `POST /api/evaluations/run` backed by an `@Async` executor so the
+  caller gets a 202 Accepted with a `runId` immediately.
+- Provide `GET /api/evaluations/last` for dashboards/scripts to poll summary
+  data.
 - Capture trace context around each evaluation call for Tempo integration.
 
 ### Phase 4 Observability Integration

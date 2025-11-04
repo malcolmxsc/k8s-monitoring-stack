@@ -62,6 +62,9 @@ services:
   los-app:
     build: .
     container_name: los-app
+    environment:
+      - HUGGINGFACE_TOKEN=${HUGGINGFACE_TOKEN:-}
+      - EVALUATION_ENABLED=${EVALUATION_ENABLED:-false}
     ports:
       - "8080:8080"
     depends_on:
