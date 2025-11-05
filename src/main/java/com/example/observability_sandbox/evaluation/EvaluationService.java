@@ -27,7 +27,6 @@ import ai.djl.repository.zoo.ModelNotFoundException;
 import ai.djl.repository.zoo.ZooModel;
 import ai.djl.translate.TranslateException;
 import ai.djl.util.Progress;
-import ai.djl.huggingface.translator.TextClassificationTranslatorFactory;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -243,16 +242,15 @@ public class EvaluationService {
             Criteria<String, Classifications> criteria = Criteria.builder()
                     .setTypes(String.class, Classifications.class)
                     .optApplication(Application.NLP.SENTIMENT_ANALYSIS)
-                    .optModelUrls("hf://" + properties.getModel())
-                    .optTranslatorFactory(new TextClassificationTranslatorFactory())
+                    .optGroupId("ai.djl.pytorch")
+                    .optArtifactId(properties.getModel())
                     .optEngine("PyTorch")
-                    .optOption("mapLocation", "true")
                     .optProgress(new SilentProgress())
                     .build();
 
             ZooModel<String, Classifications> model = criteria.loadModel();
             modelRef.set(model);
-            log.info("Loaded Hugging Face model {} for evaluation", properties.getModel());
+            log.info("Loaded DJL packaged model {} for evaluation", properties.getModel());
         } catch (ModelNotFoundException | MalformedModelException | IOException ex) {
             log.error("Failed to load evaluation model {}: {}", properties.getModel(), ex.getMessage(), ex);
         } catch (RuntimeException ex) {

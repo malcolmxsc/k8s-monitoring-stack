@@ -89,8 +89,9 @@ curl -u demo:observability! -X POST http://<LOS_APP_LB_IP>:8080/generate \
 
 ## 🧪 LLM Evaluation Service
 
-The application can now run on-device sentiment evaluations using DJL with the Hugging Face
-`distilbert-base-uncased-finetuned-sst-2-english` model. Results are published as metrics/logs alongside request traces.
+The application can now run on-device sentiment evaluations using DJL with the packaged
+`ai.djl.pytorch:distilbert` sentiment model (bundled DistilBERT fine-tuned on SST-2). Results are
+published as metrics/logs alongside request traces.
 
 1. **Enable the feature**
    - Set `EVALUATION_ENABLED=true` (env var) or add `evaluation.enabled=true` to application configuration.

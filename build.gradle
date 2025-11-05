@@ -35,15 +35,17 @@ dependencies {
 	implementation "io.micrometer:micrometer-tracing-bridge-otel"
 
 	// DJL Hugging Face integration for on-device evaluation
-	implementation 'ai.djl:api:0.26.0'
-	implementation 'ai.djl:model-zoo:0.26.0'
-	implementation 'ai.djl.huggingface:tokenizers:0.26.0'
-	runtimeOnly 'ai.djl.pytorch:pytorch-model-zoo:0.26.0'
-	runtimeOnly 'ai.djl.pytorch:pytorch-engine:0.26.0'
-	runtimeOnly 'ai.djl.pytorch:pytorch-native-cpu:2.1.2:linux-x86_64'
-	runtimeOnly 'ai.djl.pytorch:pytorch-native-cpu:2.1.2:osx-x86_64'
-	runtimeOnly 'ai.djl.pytorch:pytorch-native-cpu:2.1.2:osx-aarch64'
-	runtimeOnly 'ai.djl.pytorch:pytorch-native-cpu:2.1.2:win-x86_64'
+	def djlVersion = '0.35.0'
+	def pytorchNativeVersion = '2.7.1'
+	implementation "ai.djl:api:${djlVersion}"
+	implementation "ai.djl:model-zoo:${djlVersion}"
+	implementation "ai.djl.huggingface:tokenizers:${djlVersion}"
+	runtimeOnly "ai.djl.pytorch:pytorch-engine:${djlVersion}"
+	runtimeOnly "ai.djl.pytorch:pytorch-model-zoo:${djlVersion}"
+	runtimeOnly "ai.djl.pytorch:pytorch-native-cpu:${pytorchNativeVersion}:linux-x86_64"
+	runtimeOnly "ai.djl.pytorch:pytorch-native-cpu:${pytorchNativeVersion}:linux-aarch64"
+	runtimeOnly "ai.djl.pytorch:pytorch-native-cpu:${pytorchNativeVersion}:osx-aarch64"
+	runtimeOnly "ai.djl.pytorch:pytorch-native-cpu:${pytorchNativeVersion}:win-x86_64"
 
 	// JSON logs for loki
 	implementation 'net.logstash.logback:logstash-logback-encoder:8.1'

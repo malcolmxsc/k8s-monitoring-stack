@@ -8,7 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class EvaluationProperties {
 
     private boolean enabled = false;
-    private String model = "distilbert-base-uncased-finetuned-sst-2-english";
+    private String model = "distilbert";
     private Duration interval = Duration.ofMinutes(10);
     private int batchSize = 20;
 
