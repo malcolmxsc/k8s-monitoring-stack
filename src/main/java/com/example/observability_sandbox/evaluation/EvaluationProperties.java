@@ -10,9 +10,7 @@ public class EvaluationProperties {
     private boolean enabled = false;
     private String model = "distilbert-base-uncased-finetuned-sst-2-english";
     private Duration interval = Duration.ofMinutes(10);
-    private Duration requestTimeout = Duration.ofSeconds(5);
     private int batchSize = 20;
-    private String apiToken = "";
 
     public boolean isEnabled() {
         return enabled;
@@ -38,27 +36,11 @@ public class EvaluationProperties {
         this.interval = interval;
     }
 
-    public Duration getRequestTimeout() {
-        return requestTimeout;
-    }
-
-    public void setRequestTimeout(Duration requestTimeout) {
-        this.requestTimeout = requestTimeout;
-    }
-
     public int getBatchSize() {
         return batchSize;
     }
 
     public void setBatchSize(int batchSize) {
         this.batchSize = batchSize;
-    }
-
-    public String getApiToken() {
-        return apiToken;
-    }
-
-    public void setApiToken(String apiToken) {
-        this.apiToken = apiToken;
     }
 }

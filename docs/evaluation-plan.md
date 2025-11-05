@@ -20,9 +20,8 @@ regain context.
 1. **Evaluation prompts** curated set of labelled sentences (positive and
    negative sentiments) stored in code or a resource file.
 2. **EvaluationService** Spring `@Service` that:
-   - Calls Hugging Face’s inference API using the model configured in
-     `application.properties`.
-   - Compares the returned label to the expected label.
+   - Loads the configured Hugging Face model locally via DJL (PyTorch engine).
+   - Compares the predicted label to the expected label.
    - Emits metrics (`llm_evaluation_tests_total` counters, latency timers),
      logs, and tracing attributes per prompt.
 3. **Scheduler & API trigger** scheduled batch runs plus an optional manual
@@ -42,14 +41,15 @@ regain context.
   - `evaluation.model`
   - `evaluation.interval`
   - `evaluation.batchSize` (optional)
-- Plan secret management: Hugging Face token supplied via environment variable
-  `HUGGINGFACE_TOKEN`; document updates for Docker Compose and Kubernetes
-  secrets (`k8s/deployment.yaml`).
+- No Hugging Face token required when running via DJL; ensure outbound
+  network access for the initial model download.
 
 ### Phase 2 Service Implementation
 
 - Create `EvaluationService`:
-  - Inject Spring’s `RestClient`/`WebClient`, `MeterRegistry`, and configuration.
+  - Inject the `MeterRegistry` and configuration.
+  - Use DJL `Criteria` with `TextClassificationTranslatorFactory` and PyTorch
+    engine to load the Hugging Face sentiment model locally.
   - Implement `evaluatePrompt(prompt, expectation)` returning an immutable
     result record with latency, label, confidence, and pass/fail flag.
   - Implement `runBatch()` that loops over all prompts, accumulates results, and
@@ -60,7 +60,7 @@ regain context.
     - Gauge or counter for total prompts evaluated.
   - Add structured logging (`logger.info/ warn`) with MDC fields (`prompt_id`,
     `expected_label`, `actual_label`, `score`).
-- Handle API errors gracefully with retries/backoff.
+- Handle model-load failures gracefully (log and keep feature optional).
 
 ### Phase 3 – Scheduling & API Exposure
 
@@ -86,11 +86,7 @@ regain context.
 
 ### Phase 5  Deployment & Secrets
 
-- Update Docker Compose service definition to inject `HUGGINGFACE_TOKEN`.
-- Update Kubernetes manifests:
-  - Add `HUGGINGFACE_TOKEN` entry to the secret and environment variable in
-    `k8s/deployment.yaml`.
-  - Confirm imagePullSecret and config references remain valid.
+- No additional secrets required; DJL downloads model artifacts on demand.
 - Validate end-to-end:
   - Run evaluation locally (`curl -X POST http://localhost:8080/api/evaluations/run`).
   - Check `/actuator/prometheus` for new metrics.

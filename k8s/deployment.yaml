@@ -44,11 +44,6 @@ spec:
                 secretKeyRef:
                   name: los-app-demo-credentials
                   key: app-password
-            - name: HUGGINGFACE_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: los-app-demo-credentials
-                  key: huggingface-token
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness

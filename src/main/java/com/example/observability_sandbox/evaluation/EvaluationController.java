@@ -31,10 +31,6 @@ public class EvaluationController {
             return ResponseEntity.status(HttpStatus.PRECONDITION_FAILED)
                     .body(Map.of("message", "Evaluation service disabled via configuration"));
         }
-        if (!evaluationService.hasToken()) {
-            return ResponseEntity.status(HttpStatus.PRECONDITION_FAILED)
-                    .body(Map.of("message", "Hugging Face token not configured"));
-        }
         String runId = UUID.randomUUID().toString();
         String effectiveTrigger = StringUtils.hasText(trigger) ? trigger : "manual";
         evaluationService.runBatchAsync(effectiveTrigger + "-" + runId);

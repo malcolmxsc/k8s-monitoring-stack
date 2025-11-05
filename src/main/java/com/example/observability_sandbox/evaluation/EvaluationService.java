@@ -1,8 +1,9 @@
 package com.example.observability_sandbox.evaluation;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
@@ -13,36 +14,36 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.core.env.Environment;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientException;
 
+import ai.djl.Application;
+import ai.djl.MalformedModelException;
+import ai.djl.inference.Predictor;
+import ai.djl.modality.Classifications;
+import ai.djl.repository.zoo.Criteria;
+import ai.djl.repository.zoo.ModelNotFoundException;
+import ai.djl.repository.zoo.ZooModel;
+import ai.djl.translate.TranslateException;
+import ai.djl.util.Progress;
+import ai.djl.huggingface.translator.TextClassificationTranslatorFactory;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.Timer.Sample;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 
 @Service
 public class EvaluationService {
 
     private static final Logger log = LoggerFactory.getLogger(EvaluationService.class);
-    private static final ParameterizedTypeReference<List<HuggingFacePrediction>> RESPONSE_TYPE =
-            new ParameterizedTypeReference<>() {};
 
     private final EvaluationProperties properties;
-    private final RestClient restClient;
     private final MeterRegistry meterRegistry;
     private final List<EvaluationCase> evaluationCases;
-    private final String authToken;
 
     private final Counter passCounter;
     private final Counter failCounter;
@@ -55,24 +56,12 @@ public class EvaluationService {
             new EvaluationBatchSummary(Instant.EPOCH, Duration.ZERO, 0, 0, 0, List.of()));
     private final AtomicBoolean batchRunning = new AtomicBoolean(false);
 
-    public EvaluationService(RestClient.Builder restClientBuilder,
-                             EvaluationProperties properties,
-                             MeterRegistry meterRegistry,
-                             Environment environment) {
+    private final AtomicReference<ZooModel<String, Classifications>> modelRef = new AtomicReference<>();
+
+    public EvaluationService(EvaluationProperties properties, MeterRegistry meterRegistry) {
         this.properties = properties;
         this.meterRegistry = meterRegistry;
         this.evaluationCases = EvaluationDataset.defaultCases();
-        this.authToken = resolveToken(properties, environment);
-
-        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        int timeoutMillis = (int) properties.getRequestTimeout().toMillis();
-        requestFactory.setConnectTimeout(timeoutMillis);
-        requestFactory.setReadTimeout(timeoutMillis);
-
-        this.restClient = restClientBuilder
-                .baseUrl("https://api-inference.huggingface.co/models/" + properties.getModel())
-                .requestFactory(requestFactory)
-                .build();
 
         this.passCounter = Counter.builder("llm_evaluation_tests_total")
                 .tag("result", "pass")
@@ -85,7 +74,7 @@ public class EvaluationService {
                 .description("LLM evaluation tests that failed to match the expected outcome")
                 .register(meterRegistry);
         this.requestTimer = Timer.builder("llm_evaluation_request_duration")
-                .description("Latency of individual evaluation requests against Hugging Face")
+                .description("Latency of individual evaluation inferences")
                 .tag("model", properties.getModel())
                 .register(meterRegistry);
         this.batchTimer = Timer.builder("llm_evaluation_batch_duration")
@@ -103,12 +92,15 @@ public class EvaluationService {
                 .register(meterRegistry);
     }
 
-    public boolean isEnabled() {
-        return properties.isEnabled();
+    @PostConstruct
+    public void warmup() {
+        if (properties.isEnabled()) {
+            initializePredictor();
+        }
     }
 
-    public boolean hasToken() {
-        return StringUtils.hasText(authToken);
+    public boolean isEnabled() {
+        return properties.isEnabled();
     }
 
     public EvaluationBatchSummary runBatch() {
@@ -120,16 +112,19 @@ public class EvaluationService {
             log.debug("Evaluation disabled; skipping run [{}]", trigger);
             return emptySummary();
         }
-        if (!StringUtils.hasText(authToken)) {
-            log.warn("No Hugging Face token configured; skipping evaluation run [{}]", trigger);
-            return emptySummary();
-        }
         if (!batchRunning.compareAndSet(false, true)) {
             log.warn("Evaluation already running; skipping overlapping trigger [{}]", trigger);
             return emptySummary();
         }
 
         try {
+            initializePredictor();
+            ZooModel<String, Classifications> zooModel = modelRef.get();
+            if (zooModel == null) {
+                log.error("Predictor unavailable; skipping evaluation run [{}]", trigger);
+                return emptySummary();
+            }
+
             Instant start = Instant.now();
             log.info("Starting evaluation batch [{}] cases={} model={}", trigger, properties.getBatchSize(), properties.getModel());
             Sample sample = Timer.start(meterRegistry);
@@ -137,24 +132,20 @@ public class EvaluationService {
                     .limit(Math.max(1, properties.getBatchSize()))
                     .collect(Collectors.toList());
 
+            List<EvaluationResult> results = new ArrayList<>(casesToRun.size());
             int passed = 0;
             int failed = 0;
-            List<EvaluationResult> results = casesToRun.stream()
-                    .map(this::executeCase)
-                    .peek(result -> {
-                        if (result.passed()) {
-                            passCounter.increment();
-                        } else {
-                            failCounter.increment();
-                        }
-                    })
-                    .toList();
-
-            for (EvaluationResult result : results) {
-                if (result.passed()) {
-                    passed++;
-                } else {
-                    failed++;
+            try (Predictor<String, Classifications> predictor = zooModel.newPredictor()) {
+                for (EvaluationCase caseItem : casesToRun) {
+                    EvaluationResult result = executeCase(predictor, caseItem);
+                    results.add(result);
+                    if (result.passed()) {
+                        passCounter.increment();
+                        passed++;
+                    } else {
+                        failCounter.increment();
+                        failed++;
+                    }
                 }
             }
 
@@ -203,42 +194,27 @@ public class EvaluationService {
         return new EvaluationBatchSummary(Instant.now(), Duration.ZERO, 0, 0, 0, List.of());
     }
 
-    private EvaluationResult executeCase(EvaluationCase evaluationCase) {
+    private EvaluationResult executeCase(Predictor<String, Classifications> predictor, EvaluationCase evaluationCase) {
         long startNanos = System.nanoTime();
         try {
-            List<HuggingFacePrediction> predictions = restClient.post()
-                    .headers(headers -> {
-                        headers.setBearerAuth(authToken);
-                        headers.setContentType(MediaType.APPLICATION_JSON);
-                        headers.set(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE);
-                    })
-                    .body(HuggingFaceRequest.of(evaluationCase.prompt()))
-                    .retrieve()
-                    .body(RESPONSE_TYPE);
-
-            if (predictions == null || predictions.isEmpty()) {
-                return failureResult(evaluationCase, startNanos, "Empty response from Hugging Face");
-            }
-
-            HuggingFacePrediction best = predictions.stream()
-                    .max(Comparator.comparingDouble(HuggingFacePrediction::score))
-                    .orElse(null);
+            Classifications classifications = predictor.predict(evaluationCase.prompt());
+            Classifications.Classification best = classifications.best();
             if (best == null) {
-                return failureResult(evaluationCase, startNanos, "No prediction scores returned");
+                return failureResult(evaluationCase, startNanos, "No classification returned");
             }
 
-            String predictedLabel = normalizeLabel(best.label());
+            String predictedLabel = normalizeLabel(best.getClassName());
             boolean passed = predictedLabel.equalsIgnoreCase(evaluationCase.expectedLabel());
             Duration latency = recordLatency(startNanos);
             if (passed) {
                 log.info("Evaluation PASS [{}] expected={} predicted={} confidence={}",
-                        evaluationCase.id(), evaluationCase.expectedLabel(), predictedLabel, best.score());
+                        evaluationCase.id(), evaluationCase.expectedLabel(), predictedLabel, best.getProbability());
             } else {
                 log.warn("Evaluation FAIL [{}] expected={} predicted={} confidence={}",
-                        evaluationCase.id(), evaluationCase.expectedLabel(), predictedLabel, best.score());
+                        evaluationCase.id(), evaluationCase.expectedLabel(), predictedLabel, best.getProbability());
             }
-            return new EvaluationResult(evaluationCase, predictedLabel, best.score(), passed, latency, null);
-        } catch (RestClientException ex) {
+            return new EvaluationResult(evaluationCase, predictedLabel, best.getProbability(), passed, latency, null);
+        } catch (TranslateException ex) {
             log.error("Evaluation ERROR [{}]: {}", evaluationCase.id(), ex.getMessage(), ex);
             return failureResult(evaluationCase, startNanos, ex.getMessage());
         }
@@ -259,28 +235,73 @@ public class EvaluationService {
         return label == null ? "UNKNOWN" : label.trim().toUpperCase(Locale.ROOT);
     }
 
-    private static String resolveToken(EvaluationProperties properties, Environment environment) {
-        if (StringUtils.hasText(properties.getApiToken())) {
-            return properties.getApiToken().trim();
+    private void initializePredictor() {
+        if (modelRef.get() != null) {
+            return;
         }
-        String envToken = environment.getProperty("HUGGINGFACE_TOKEN");
-        if (StringUtils.hasText(envToken)) {
-            return envToken.trim();
+        try {
+            Criteria<String, Classifications> criteria = Criteria.builder()
+                    .setTypes(String.class, Classifications.class)
+                    .optApplication(Application.NLP.SENTIMENT_ANALYSIS)
+                    .optModelUrls("hf://" + properties.getModel())
+                    .optTranslatorFactory(new TextClassificationTranslatorFactory())
+                    .optEngine("PyTorch")
+                    .optOption("mapLocation", "true")
+                    .optProgress(new SilentProgress())
+                    .build();
+
+            ZooModel<String, Classifications> model = criteria.loadModel();
+            modelRef.set(model);
+            log.info("Loaded Hugging Face model {} for evaluation", properties.getModel());
+        } catch (ModelNotFoundException | MalformedModelException | IOException ex) {
+            log.error("Failed to load evaluation model {}: {}", properties.getModel(), ex.getMessage(), ex);
+        } catch (RuntimeException ex) {
+            log.error("Unexpected failure loading evaluation model {}: {}", properties.getModel(), ex.getMessage(), ex);
         }
-        return "";
     }
 
-    private record HuggingFacePrediction(String label, double score) {
-    }
-
-    private record HuggingFaceRequest(String inputs, Options options) {
-
-        static HuggingFaceRequest of(String prompt) {
-            return new HuggingFaceRequest(prompt, new Options(true, false));
+    @PreDestroy
+    public void shutdown() {
+        ZooModel<String, Classifications> model = modelRef.getAndSet(null);
+        if (model != null) {
+            model.close();
         }
     }
 
-    @SuppressWarnings("unused")
-    private record Options(boolean wait_for_model, boolean use_cache) {
+    private static final class SilentProgress implements Progress {
+        @Override
+        public void reset(String task, long max) {
+            // no-op
+        }
+
+        @Override
+        public void reset(String task, long max, String status) {
+            // no-op
+        }
+
+        @Override
+        public void update(long current) {
+            // no-op
+        }
+
+        @Override
+        public void update(long current, String status) {
+            // no-op
+        }
+
+        @Override
+        public void increment(long current) {
+            // no-op
+        }
+
+        @Override
+        public void end() {
+            // no-op
+        }
+
+        @Override
+        public void start(long max) {
+            // no-op
+        }
     }
 }
