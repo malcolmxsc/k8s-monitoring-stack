@@ -31,9 +31,9 @@ spec:
             - name: LOGGING_CONFIG
               value: /config/logback-spring.xml
             - name: MANAGEMENT_OTLP_TRACING_ENDPOINT
-              value: http://alloy.observability-sandbox.svc.cluster.local:4318/v1/traces
+              value: http://tempo.observability-sandbox.svc.cluster.local:4318/v1/traces
             - name: EVALUATION_ENABLED
-              value: "false"
+              value: "true"
             - name: APP_USER
               valueFrom:
                 secretKeyRef:
@@ -63,10 +63,10 @@ spec:
           resources:
             requests:
               cpu: 100m
-              memory: 256Mi
+              memory: 1Gi
             limits:
               cpu: 500m
-              memory: 512Mi
+              memory: 2Gi
           volumeMounts:
             - name: logback-config
               mountPath: /config/logback-spring.xml

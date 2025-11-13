@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: evaluation-trigger
+  namespace: observability-sandbox
+  labels:
+    app: evaluation-trigger
+spec:
+  schedule: "*/30 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: evaluation-trigger
+              image: curlimages/curl:8.6.0
+              args:
+                - -s
+                - -u
+                - demo:observability!
+                - -X
+                - POST
+                - http://los-app.observability-sandbox.svc.cluster.local:8080/api/evaluations/run

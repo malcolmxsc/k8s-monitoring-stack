@@ -4,8 +4,10 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -14,6 +16,7 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -116,6 +119,7 @@ public class EvaluationService {
             return emptySummary();
         }
 
+        Map<String, String> batchContext = new LinkedHashMap<>();
         try {
             initializePredictor();
             ZooModel<String, Classifications> zooModel = modelRef.get();
@@ -124,13 +128,20 @@ public class EvaluationService {
                 return emptySummary();
             }
 
-            Instant start = Instant.now();
-            log.info("Starting evaluation batch [{}] cases={} model={}", trigger, properties.getBatchSize(), properties.getModel());
-            Sample sample = Timer.start(meterRegistry);
             List<EvaluationCase> casesToRun = evaluationCases.stream()
                     .limit(Math.max(1, properties.getBatchSize()))
                     .collect(Collectors.toList());
 
+            Instant start = Instant.now();
+            batchContext.put("evaluation_batch_trigger", trigger);
+            batchContext.put("evaluation_model", properties.getModel());
+            batchContext.put("evaluation_batch_size", Integer.toString(casesToRun.size()));
+            batchContext.put("evaluation_batch_started_at", start.toString());
+            applyMdc(batchContext);
+
+            log.info("evaluation_batch_start cases={}", casesToRun.size());
+
+            Sample sample = Timer.start(meterRegistry);
             List<EvaluationResult> results = new ArrayList<>(casesToRun.size());
             int passed = 0;
             int failed = 0;
@@ -154,6 +165,19 @@ public class EvaluationService {
             lastRunPasses.set(passed);
             lastRunAt.set(start);
 
+            Map<String, String> summaryContext = new LinkedHashMap<>();
+            summaryContext.put("evaluation_batch_total", Integer.toString(results.size()));
+            summaryContext.put("evaluation_batch_passed", Integer.toString(passed));
+            summaryContext.put("evaluation_batch_failed", Integer.toString(failed));
+            summaryContext.put("evaluation_batch_duration_ms", Long.toString(batchDuration.toMillis()));
+            applyMdc(summaryContext);
+            try {
+                log.info("evaluation_batch_complete total={} passed={} failed={} duration_ms={}",
+                        results.size(), passed, failed, batchDuration.toMillis());
+            } finally {
+                clearMdc(summaryContext);
+            }
+
             EvaluationBatchSummary summary = new EvaluationBatchSummary(start, batchDuration, results.size(), passed, failed, results);
             lastSummary.set(summary);
 
@@ -162,6 +186,7 @@ public class EvaluationService {
 
             return summary;
         } finally {
+            clearMdc(batchContext);
             batchRunning.set(false);
         }
     }
@@ -199,24 +224,68 @@ public class EvaluationService {
             Classifications classifications = predictor.predict(evaluationCase.prompt());
             Classifications.Classification best = classifications.best();
             if (best == null) {
-                return failureResult(evaluationCase, startNanos, "No classification returned");
+                EvaluationResult failure = failureResult(evaluationCase, startNanos, "No classification returned");
+                logCaseResult(failure, null);
+                return failure;
             }
 
             String predictedLabel = normalizeLabel(best.getClassName());
             boolean passed = predictedLabel.equalsIgnoreCase(evaluationCase.expectedLabel());
             Duration latency = recordLatency(startNanos);
-            if (passed) {
-                log.info("Evaluation PASS [{}] expected={} predicted={} confidence={}",
-                        evaluationCase.id(), evaluationCase.expectedLabel(), predictedLabel, best.getProbability());
-            } else {
-                log.warn("Evaluation FAIL [{}] expected={} predicted={} confidence={}",
-                        evaluationCase.id(), evaluationCase.expectedLabel(), predictedLabel, best.getProbability());
-            }
-            return new EvaluationResult(evaluationCase, predictedLabel, best.getProbability(), passed, latency, null);
+            EvaluationResult result = new EvaluationResult(evaluationCase, predictedLabel, best.getProbability(), passed, latency, null);
+            logCaseResult(result, null);
+            return result;
         } catch (TranslateException ex) {
-            log.error("Evaluation ERROR [{}]: {}", evaluationCase.id(), ex.getMessage(), ex);
-            return failureResult(evaluationCase, startNanos, ex.getMessage());
+            EvaluationResult failure = failureResult(evaluationCase, startNanos, ex.getMessage());
+            logCaseResult(failure, ex);
+            return failure;
         }
+    }
+
+    private void logCaseResult(EvaluationResult result, Throwable throwable) {
+        EvaluationCase evaluationCase = result.evaluationCase();
+        Map<String, String> context = new LinkedHashMap<>();
+        context.put("evaluation_prompt", evaluationCase.prompt());
+        context.put("evaluation_case_id", evaluationCase.id());
+        context.put("evaluation_expected_label", evaluationCase.expectedLabel());
+        context.put("evaluation_predicted_label", result.predictedLabel());
+        context.put("evaluation_confidence", String.format(Locale.ROOT, "%.6f", result.confidence()));
+        context.put("evaluation_latency_ms", Long.toString(result.latency().toMillis()));
+        context.put("evaluation_passed", Boolean.toString(result.passed()));
+        if (result.errorMessage() != null) {
+            context.put("evaluation_error", result.errorMessage());
+        }
+
+        applyMdc(context);
+        try {
+            if (result.errorMessage() != null) {
+                if (throwable != null) {
+                    log.error("evaluation_case_error", throwable);
+                } else {
+                    log.error("evaluation_case_error");
+                }
+            } else if (result.passed()) {
+                log.info("evaluation_case_pass");
+            } else {
+                log.warn("evaluation_case_fail");
+            }
+        } finally {
+            clearMdc(context);
+        }
+    }
+
+    private static void applyMdc(Map<String, String> context) {
+        context.forEach((key, value) -> {
+            if (value != null) {
+                MDC.put(key, value);
+            } else {
+                MDC.remove(key);
+            }
+        });
+    }
+
+    private static void clearMdc(Map<String, String> context) {
+        context.keySet().forEach(MDC::remove);
     }
 
     private EvaluationResult failureResult(EvaluationCase evaluationCase, long startNanos, String message) {
