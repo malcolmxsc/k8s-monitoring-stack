@@ -73,6 +73,17 @@ spec:
               subPath: logback-spring.xml
             - name: app-logs
               mountPath: /var/log/los
+        - name: promtail
+          image: grafana/promtail:2.9.8
+          args:
+            - -config.file=/etc/promtail/config.yml
+          volumeMounts:
+            - name: promtail-config
+              mountPath: /etc/promtail
+            - name: app-logs
+              mountPath: /var/log/los
+            - name: promtail-positions
+              mountPath: /tmp
       volumes:
         - name: logback-config
           configMap:
@@ -81,4 +92,9 @@ spec:
               - key: logback-spring.xml
                 path: logback-spring.xml
         - name: app-logs
+          emptyDir: {}
+        - name: promtail-config
+          configMap:
+            name: los-app-promtail-config
+        - name: promtail-positions
           emptyDir: {}

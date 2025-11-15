@@ -93,6 +93,16 @@ The application can now run on-device sentiment evaluations using DJL with the p
 `ai.djl.pytorch:distilbert` sentiment model (bundled DistilBERT fine-tuned on SST-2). Results are
 published as metrics/logs alongside request traces.
 
+### What’s new in the evaluation pipeline
+
+- Automated CronJob (`k8s/evaluation-cronjob.yaml`) triggers `/api/evaluations/run` every 30 minutes so Grafana always has fresh data.
+- Promtail ships `/var/log/los/app.log` directly into Loki, so the “Failed Evaluations” panel shows the exact prompt/label/model for each failure.
+- The Grafana dashboard (`llm-evaluation-dashboard.json`) now includes:
+  - Pass-rate KPI and pass/fail volume chart powered by `llm_evaluation_tests_total`.
+  - Last-batch stats (`total/passes/failures`) sourced from the live gauges.
+  - Latency panels for both the overall request timer and the DJL-only `djl_inference_latency_seconds` metric.
+- Batch and case logs carry `evaluation_model`, making it easy to compare models or filter by test run directly in Loki.
+
 1. **Enable the feature**
    - Set `EVALUATION_ENABLED=true` (env var) or add `evaluation.enabled=true` to application configuration.
    - The first run downloads the model artifacts (~260 MB) into the container/pod.

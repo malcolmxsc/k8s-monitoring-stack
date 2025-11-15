@@ -50,6 +50,7 @@ public class EvaluationService {
     private final Counter passCounter;
     private final Counter failCounter;
     private final Timer requestTimer;
+    private final Timer inferenceTimer;
     private final Timer batchTimer;
     private final AtomicInteger lastRunCount = new AtomicInteger();
     private final AtomicInteger lastRunPasses = new AtomicInteger();
@@ -78,6 +79,11 @@ public class EvaluationService {
         this.requestTimer = Timer.builder("llm_evaluation_request_duration")
                 .description("Latency of individual evaluation inferences")
                 .tag("model", properties.getModel())
+                .register(meterRegistry);
+        this.inferenceTimer = Timer.builder("djl_inference_latency_seconds")
+                .description("Time spent inside predictor.predict (DJL only)")
+                .tag("model", properties.getModel())
+                .publishPercentileHistogram()
                 .register(meterRegistry);
         this.batchTimer = Timer.builder("llm_evaluation_batch_duration")
                 .description("Total duration for running the evaluation batch")
@@ -170,6 +176,7 @@ public class EvaluationService {
             summaryContext.put("evaluation_batch_passed", Integer.toString(passed));
             summaryContext.put("evaluation_batch_failed", Integer.toString(failed));
             summaryContext.put("evaluation_batch_duration_ms", Long.toString(batchDuration.toMillis()));
+            summaryContext.put("evaluation_model", properties.getModel());
             applyMdc(summaryContext);
             try {
                 log.info("evaluation_batch_complete total={} passed={} failed={} duration_ms={}",
@@ -181,8 +188,19 @@ public class EvaluationService {
             EvaluationBatchSummary summary = new EvaluationBatchSummary(start, batchDuration, results.size(), passed, failed, results);
             lastSummary.set(summary);
 
-            log.info("Completed evaluation batch [{}]: total={} passed={} failed={} duration={}ms",
-                    trigger, results.size(), passed, failed, batchDuration.toMillis());
+            Map<String, String> completedContext = new LinkedHashMap<>();
+            completedContext.put("evaluation_model", properties.getModel());
+            completedContext.put("evaluation_batch_total", Integer.toString(results.size()));
+            completedContext.put("evaluation_batch_passed", Integer.toString(passed));
+            completedContext.put("evaluation_batch_failed", Integer.toString(failed));
+            completedContext.put("evaluation_batch_duration_ms", Long.toString(batchDuration.toMillis()));
+            applyMdc(completedContext);
+            try {
+                log.info("Completed evaluation batch [{}]: total={} passed={} failed={} duration={}ms",
+                        trigger, results.size(), passed, failed, batchDuration.toMillis());
+            } finally {
+                clearMdc(completedContext);
+            }
 
             return summary;
         } finally {
@@ -220,8 +238,10 @@ public class EvaluationService {
 
     private EvaluationResult executeCase(Predictor<String, Classifications> predictor, EvaluationCase evaluationCase) {
         long startNanos = System.nanoTime();
+        long inferenceStart = System.nanoTime();
         try {
             Classifications classifications = predictor.predict(evaluationCase.prompt());
+            inferenceTimer.record(Duration.ofNanos(System.nanoTime() - inferenceStart));
             Classifications.Classification best = classifications.best();
             if (best == null) {
                 EvaluationResult failure = failureResult(evaluationCase, startNanos, "No classification returned");
@@ -236,6 +256,7 @@ public class EvaluationService {
             logCaseResult(result, null);
             return result;
         } catch (TranslateException ex) {
+            inferenceTimer.record(Duration.ofNanos(System.nanoTime() - inferenceStart));
             EvaluationResult failure = failureResult(evaluationCase, startNanos, ex.getMessage());
             logCaseResult(failure, ex);
             return failure;
@@ -245,6 +266,7 @@ public class EvaluationService {
     private void logCaseResult(EvaluationResult result, Throwable throwable) {
         EvaluationCase evaluationCase = result.evaluationCase();
         Map<String, String> context = new LinkedHashMap<>();
+        context.put("evaluation_model", properties.getModel());
         context.put("evaluation_prompt", evaluationCase.prompt());
         context.put("evaluation_case_id", evaluationCase.id());
         context.put("evaluation_expected_label", evaluationCase.expectedLabel());

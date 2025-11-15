@@ -94,6 +94,92 @@
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 0.2
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "expr": "rate(djl_inference_latency_seconds_sum[30m]) / clamp_min(rate(djl_inference_latency_seconds_count[30m]), 1e-6)",
+          "legendFormat": "Avg DJL latency",
+          "refId": "A"
+        },
+        {
+          "expr": "max_over_time(djl_inference_latency_seconds_max[30m])",
+          "legendFormat": "Max DJL latency",
+          "refId": "B"
+        }
+      ],
+      "title": "DJL Inference Latency (avg & max)",
+      "transparent": true,
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "bars",
             "fillOpacity": 80,
@@ -290,7 +376,7 @@
       },
       "targets": [
         {
-          "expr": "max(llm_evaluation_last_run_total)",
+          "expr": "max(llm_evaluation_last_run)",
           "legendFormat": "Total",
           "refId": "A"
         }
@@ -406,7 +492,7 @@
       },
       "targets": [
         {
-          "expr": "max(llm_evaluation_last_run_total) - max(llm_evaluation_last_run_passes)",
+          "expr": "max(llm_evaluation_last_run) - max(llm_evaluation_last_run_passes)",
           "legendFormat": "Failures",
           "refId": "A"
         }
@@ -445,7 +531,7 @@
       },
       "targets": [
         {
-          "expr": "{job=\"los-app\"} |= \"evaluation_case_fail\" | json",
+          "expr": "{job=\"los-app\"} |~ \"Evaluation FAIL|evaluation_case_fail\" | json",
           "refId": "A"
         }
       ],
