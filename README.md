@@ -266,13 +266,6 @@ This project ships a single “LLM Model Reliability (Prometheus)” dashboard. 
 - Traces — Tempo (ingested via Grafana Alloy / OTLP)
   - The app exports OTLP traces to Tempo (`/v1/traces`). In Explore → Tempo you can open traces by ID or filter by attributes (endpoint, region, model).
 
-Got “No data”? Run the load generator for a minute:
-```bash
-BASE_URL="http://35.223.226.27" \
-APP_USER="demo" APP_PASSWORD="observability!" \
-./load-generator.sh --pattern steady --base-url "$BASE_URL" --skip-health-check
-```
-
 See [SLOs and Alerting](docs/runbooks/slo-and-alerts.md) for runbooks covering the underlying metrics and burn-rate alerts.
 
 ## 🧪 Testing & Development (local, optional)
