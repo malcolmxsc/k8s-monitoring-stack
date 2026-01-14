@@ -253,71 +253,10 @@ These videos demonstrate:
 3. Copy a `traceId` value and open Grafana → Explore → Tempo
 4. Paste the `traceId` to view the end‑to‑end trace
 
-### Metrics (Grafana → Explore → Prometheus)
-
-These match the dashboard panels and respect the Grafana time picker via `$__range`:
-
-```promql
-# Model error rate per model
-100 * (sum(increase(llm_errors_total[$__range])) by (model))
-   / (sum(increase(llm_errors_total[$__range])) by (model)
-     + sum(increase(llm_prompts_success_total[$__range])) by (model))
-
-# Total errors by type
-sum(increase(llm_errors_total[$__range])) by (error_type)
-
-# Errors by region
-sum(increase(llm_errors_total[$__range])) by (region)
-
-# Request success rate (overall)
-sum(increase(llm_prompts_success_total[$__range]))
-  / (sum(increase(llm_prompts_success_total[$__range]))
-    + sum(increase(llm_errors_total[$__range]))) * 100
-
-# Total requests (success + error)
-sum(increase(llm_prompts_success_total[$__range]))
-  + sum(increase(llm_errors_total[$__range]))
-```
-
-Classic HTTP metrics from Micrometer are also available if you need them (request rate, latency histograms, JVM memory). Example:
-
-```promql
-# HTTP request rate
-rate(http_server_requests_seconds_count[5m])
-
-# HTTP P95 latency
-histogram_quantile(0.95, rate(http_server_requests_seconds_bucket[5m]))
-
-# JVM heap utilisation
-jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}
-```
 
 ## 📈 Dashboard Overview
 
 This project ships a single “LLM Model Reliability (Prometheus)” dashboard. Panels and data sources:
-
-- Model Error Rates (%) — Prometheus
-  - Formula (per model, selected range):
-    `100 * (sum(increase(llm_errors_total[$__range])) by (model)) / (sum(increase(llm_errors_total[$__range])) by (model) + sum(increase(llm_prompts_success_total[$__range])) by (model))`
-  - Shows per‑model error ratio aligned with the overall success rate.
-
-- Total Errors by Model (range) — Prometheus
-  - `sum(increase(llm_errors_total[$__range])) by (model)`
-
-- Errors by Type (range) — Prometheus
-  - `sum(increase(llm_errors_total[$__range])) by (error_type)`
-
-- Errors by Region (range) — Prometheus
-  - `sum(increase(llm_errors_total[$__range])) by (region)`
-
-- Top Errors by Model (range) — Prometheus (table)
-  - `topk by (model) (1, sum(increase(llm_errors_total[$__range])) by (model, error_type))`
-
-- Request Success Rate — Prometheus (gauge)
-  - `sum(increase(llm_prompts_success_total[$__range])) / (sum(increase(llm_prompts_success_total[$__range])) + sum(increase(llm_errors_total[$__range]))) * 100` (rounded to whole %, threshold ma[...] 
-
-- Total Requests (range) — Prometheus (stat)
-  - `sum(increase(llm_prompts_success_total[$__range])) + sum(increase(llm_errors_total[$__range]))` (full counts, no `k` abbreviations)
 
 - Recent Error Logs — Loki
   - JSON logs from the app with MDC fields (traceId, spanId, model, region, endpoint, latency).
@@ -442,14 +381,6 @@ observability-sandbox/
 - **Multi-window alerts**: 2min, 5min, 10min
 - **Severity levels**: Critical, Warning, Info
 
-## 📚 Additional Documentation
-
-- [SLOs and Alerting](docs/runbooks/slo-and-alerts.md) – Recording rules, burn-rate alerts, and test procedures.
-- [Prometheus Dashboard Notes](docs/runbooks/prometheus-dashboard.md) – Key metrics and query snippets powering the Grafana dashboard.
-- [Error Analysis Playbook](docs/runbooks/error-analysis.md) – How to investigate model-specific failures across logs, metrics, and traces.
-- [Load Generator Runbook](docs/runbooks/load-generator.md) – Traffic patterns and operational tips for the bundled client script.
-- [Observability Stack Health Check](docs/runbooks/health-check.md) – Pre-demo checklist to confirm all components are healthy.
-
 ## 🛠️ Tech Stack
 
 **Application:**
@@ -464,45 +395,6 @@ observability-sandbox/
 - Loki 2.9.8 (logs)
 - Tempo 2.5.0 (traces)
 - Grafana Alloy (OpenTelemetry collector)
-
-## 🐛 Troubleshooting
-
-### No traces in Tempo
-```bash
-# Check Alloy is receiving OTLP data
-docker logs alloy
-
-# Verify app is sending traces
-curl http://localhost:8080/actuator/metrics/http.server.requests
-
-# Check Tempo ingestion
-curl http://localhost:3200/status
-```
-
-### Logs not showing in Loki
-```bash
-# Verify log files exist
-ls -la logs/
-
-# Check Alloy log collection
-docker logs alloy | grep loki
-
-# Query Loki directly
-curl -G http://localhost:3100/loki/api/v1/query \
-  --data-urlencode 'query={job="los-app"}'
-```
-
-### Metrics not in Prometheus
-```bash
-# Check Prometheus targets
-open http://localhost:9090/targets
-
-# Verify app metrics endpoint
-curl http://localhost:8080/actuator/prometheus
-
-# Check Prometheus logs
-docker logs prometheus
-```
 
 ## 📝 License
 
